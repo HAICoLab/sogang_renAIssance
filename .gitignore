@@ -219,3 +219,10 @@ __marimo__/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Recon artifacts (investigation snapshots, not needed at runtime)
+crawler/recon/out/
+
+# Crawler outputs — keep folder, ignore generated results
+crawler/output/*
+!crawler/output/.gitkeep
