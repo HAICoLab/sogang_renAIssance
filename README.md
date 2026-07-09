@@ -7,8 +7,15 @@
 | 폴더 | 설명 |
 | --- | --- |
 | [`crawler/`](./crawler) | 서강대 로욜라도서관 도서 메타데이터 크롤러 (데이터 수집) |
+| [`skeleton/`](./skeleton) | 도서 청구기호 분류 사서-AI 협업 에이전트 **워킹 스켈레톤** (학생 시작점 / baseline). CLI + Streamlit 웹 UI |
 
 > 이후 전처리, 모델링, 서비스 등 컴포넌트가 추가되면 이 표에 함께 정리합니다.
+
+### `skeleton/` 은 무엇인가
+
+[`skeleton/docs/prototype_design.md`](./skeleton/docs/prototype_design.md) 설계서를 바탕으로 **바이브코딩**으로 구현한 v0 워킹 스켈레톤입니다.
+서지 정보를 입력하면 유사 사례를 검색하고, 청구기호 후보와 판단 근거(XAI)를 제시합니다 (최종 판단은 사람 사서).
+학생들은 **여기서 시작해 각자의 버전을 만들고 이 스켈레톤과 비교**해 보면 됩니다. 자세한 실행법은 [`skeleton/README.md`](./skeleton/README.md) 참고.
 
 ## 협업 규칙
 
