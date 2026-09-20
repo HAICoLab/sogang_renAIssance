@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>종합목록 / 서지 - 도서관 업무시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rail-top:#5a7188; --rail-bot:#3f5568;
+    --topbar-top:#7a9bbd; --topbar-bot:#4e647b;
+    --btn-top:#6cb2e0; --btn-bot:#2f89c0;
+    --btn-border:#2872a0;
+    --grid-head:#c8d8e4; --grid-head-bd:#9db6cc;
+    --row-sel:#b9d6ef; --row-alt:#eef4f9;
+    --page-bg:#dfeaf2; --panel:#ffffff;
+    --sidebar-bg:#f3f3f3; --sidebar-sel:#d6e5be;
+    --label-green:#dbe7d2; --label-green-bd:#b9cbab;
+    --line:#c4d2dd; --text:#333;
+    --tab-active:#f3f7fb; --tab-inactive:#84a3c4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:"Malgun Gothic","맑은 고딕","Noto Sans KR",Dotum,"돋움",AppleGothic,sans-serif;
+    font-size:11px; color:var(--text);
+    background:#2c3e50; -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  /* 2026-09-03 전체 화면 글자 확대 요청 — 개별 font-size 다 손대는 대신 전체 배율 확대.
+     CSS zoom은 브라우저별 지원이 들쭉날쭉(파이어폭스 등에서 미적용)해 화면 일부만 채워지는
+     문제가 있어, 대신 어디서나 동일하게 동작하는 transform:scale로 구현한다. */
+  .app{
+    display:flex;background:var(--page-bg);
+    width:83.333vw;height:83.333vh; /* 확대 전 크기 = 100/1.2 → scale(1.2) 후 정확히 100vw/100vh */
+    transform:scale(1.2); transform-origin:top left;
+    position:fixed; top:0; left:0;
+  }
+
+  /* ---------- main column ---------- */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+  /* topbar with tabs */
+  .topbar{
+    height:34px;flex:0 0 34px;
+    background:linear-gradient(var(--topbar-top),var(--topbar-bot));
+    display:flex;align-items:flex-end;padding:0 8px;position:relative;
+  }
+  .tabs{display:flex;gap:2px;}
+  .tab{
+    padding:6px 22px 5px;font-size:12px;color:#e8f0f8;cursor:pointer;
+    background:var(--tab-inactive);
+    border-radius:6px 6px 0 0;border:1px solid #4a6a86;border-bottom:none;
+    position:relative;top:1px;
+  }
+  .tab.active{
+    background:var(--tab-active);color:#25577f;font-weight:bold;
+    top:0;padding-bottom:6px;
+  }
+  .topbar .win{position:absolute;right:8px;top:6px;color:#cfe0ef;font-size:14px;}
+
+  /* body: sidebar + content */
+  .work{flex:1;display:flex;min-height:0;background:var(--page-bg);padding:4px;gap:4px;}
+
+  .sidebar{
+    width:150px;flex:0 0 150px;background:var(--sidebar-bg);
+    border:1px solid #b7c6d3;border-radius:3px;display:flex;flex-direction:column;
+  }
+  .sidebar .sb-head{
+    background:linear-gradient(#f7f7f7,#e4e4e4);
+    border-bottom:1px solid #c9c9c9;padding:5px 8px;
+    font-weight:bold;color:#3b556d;display:flex;justify-content:space-between;align-items:center;
+  }
+  .sidebar .sb-head .star{color:#e0a800;}
+  .sb-list{padding:6px 4px;flex:1;}
+  .sb-item{
+    padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;border-radius:2px;
+    color:#444;
+  }
+  .sb-item:hover{background:#e8eef3;}
+  .sb-item.sel{background:var(--sidebar-sel);font-weight:bold;color:#2f4a2f;}
+  .sidebar .sb-foot{
+    border-top:1px solid #c9c9c9;padding:5px 8px;display:flex;align-items:center;gap:6px;
+    background:linear-gradient(#f7f7f7,#e4e4e4);font-weight:bold;color:#3b556d;
+  }
+  .sb-foot select{font-size:11px;padding:1px;flex:1;}
+
+  .content{flex:1;min-width:0;background:var(--page-bg);overflow:auto;position:relative;}
+
+  /* content header bar */
+  .cbar{
+    height:26px;background:linear-gradient(#7fa1c2,#54708e);
+    display:flex;align-items:center;padding:0 10px;color:#fff;
+    border-radius:3px 3px 0 0;
+  }
+  .cbar .ct{font-weight:bold;font-size:13px;display:flex;align-items:center;gap:6px;}
+  .cbar .ct:before{content:"\1F4C4";}
+  .cbar .bc{margin-left:auto;font-size:11px;color:#d8e6f4;}
+
+  .toolbar{
+    display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--page-bg);
+  }
+  .btn{
+    background:linear-gradient(var(--btn-top),var(--btn-bot));
+    color:#fff;border:1px solid var(--btn-border);border-radius:3px;
+    padding:4px 10px;font-size:11px;cursor:pointer;white-space:nowrap;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{filter:brightness(.94);}
+  .btn.gray{background:linear-gradient(#f4f4f4,#d9d9d9);color:#333;border-color:#b0b0b0;text-shadow:none;}
+  .btn.sq{padding:3px 7px;font-weight:bold;}
+  .btn:disabled{opacity:.42;cursor:not-allowed;filter:none;}
+  .btn:disabled:hover,.btn:disabled:active{filter:none;}
+  .sb-item.disabled{opacity:.42;cursor:not-allowed;}
+  .sb-item.disabled:hover{background:none;}
+  .toolbar .spacer{flex:1;}
+  .flagico{width:22px;height:16px;border:1px solid #9db;border-radius:2px;display:inline-block;
+    background:linear-gradient(#eee,#ccc);}
+
+  .infobar{
+    display:flex;align-items:center;padding:3px 8px;font-size:11px;color:#2d4a63;
+    background:var(--page-bg);
+  }
+  .infobar b{color:#0a3d62;}
+  .infobar .right{margin-left:auto;color:#4a6072;}
+  .infobar .right em{font-style:normal;color:#c0392b;}
+
+  /* ---------- grids ---------- */
+  .gridwrap{background:#fff;border:1px solid var(--line);margin:0 4px;overflow:auto;}
+  table.grid{border-collapse:collapse;width:100%;font-size:11px;white-space:nowrap;}
+  table.grid th{
+    background:linear-gradient(#dbe7f1,#c2d5e3);
+    border:1px solid var(--grid-head-bd);padding:3px 6px;color:#2b4a63;font-weight:bold;
+    position:sticky;top:0;z-index:1;
+  }
+  table.grid td{border:1px solid #e2e9ef;padding:2px 6px;overflow:hidden;text-overflow:ellipsis;}
+  table.grid tr:nth-child(even) td{background:var(--row-alt);}
+  table.grid tr.sel td{background:var(--row-sel);}
+  table.grid tbody tr{cursor:default;}
+  table.grid tbody tr:hover td{background:#dcecf9;}
+  .num{text-align:center;color:#666;}
+  .empty-rows tr td{height:20px;border:1px solid #eef2f6;background:#fff !important;}
+
+  /* comprehensive catalog layout */
+  #view-catalog .topgrid{height:330px;}
+  .split{display:flex;gap:4px;margin:4px;}
+  .split .left{flex:0 0 400px;}
+  .split .right{flex:1;min-width:0;}
+
+  /* MARC editor */
+  .marc{background:#fff;border:1px solid var(--line);display:flex;flex-direction:column;height:100%;}
+  .marc .m-head{
+    height:22px;background:linear-gradient(#7fa1c2,#54708e);color:#fff;
+    display:flex;align-items:center;padding:0 8px;font-weight:bold;gap:6px;
+  }
+  .marc .m-head:before{content:"\1F4D8";}
+  .marc .m-head .bc{margin-left:auto;font-weight:normal;color:#d8e6f4;font-size:10px;}
+  .marc .m-tabs{display:flex;gap:14px;padding:4px 10px;background:#eef3f8;border-bottom:1px solid var(--line);}
+  .marc .m-tabs span{color:#2d4a63;cursor:not-allowed;opacity:.55;}
+  .marc .m-tabs span:before{content:"\25CF";color:#e08a2b;margin-right:3px;font-size:9px;}
+  .marc .m-meta{background:var(--label-green);border-bottom:1px solid var(--label-green-bd);padding:5px 8px;
+    display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
+  .marc .m-meta label{color:#2f4a2f;}
+  .marc .m-meta input,.marc .m-meta select{font-size:11px;padding:1px 3px;border:1px solid #9fb59f;}
+  .marc .m-meta .box{background:#fff;border:1px solid #9fb59f;padding:1px 6px;min-width:70px;display:inline-block;}
+  .marc .m-body{flex:1;overflow:auto;padding:6px 4px;font-family:"Consolas","D2Coding",Dotum,monospace;font-size:12px;line-height:1.55;background:#fff;}
+  .mf{white-space:pre-wrap;}
+  .mf .arw{color:#e08a2b;}
+  .mf .tag{color:#b03a2e;font-weight:bold;}
+  .mf .ind{color:#7a7a7a;}
+  .mf .sf{color:#1f6fbf;font-weight:bold;margin-left:8px;}
+
+  /* ---------- 서지 search bar ---------- */
+  .searchbar{
+    background:#fff;border:1px solid var(--line);margin:4px;border-radius:3px;
+    padding:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  }
+  .searchbar select,.searchbar input{font-size:11px;padding:3px 5px;border:1px solid #b7c6d3;}
+  .searchbar .qfield{background:#ffe1e1;border:1px solid #e0a0a0;}
+  .searchbar .tilde{color:#666;}
+  .searchbar .push{margin-left:auto;display:flex;gap:6px;align-items:center;}
+  .exp{display:flex;justify-content:center;margin:-2px 4px 2px;}
+  .exp span{background:#dbe7f1;border:1px solid var(--grid-head-bd);border-top:none;
+    border-radius:0 0 8px 8px;padding:1px 26px;color:#4a6072;cursor:not-allowed;font-size:10px;opacity:.55;}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(20,30,40,.35);display:none;
+    align-items:center;justify-content:center;z-index:50;}
+  .overlay.show{display:flex;}
+  .win-dialog{background:#f0f4f8;border:1px solid #35597c;box-shadow:0 8px 30px rgba(0,0,0,.35);
+    border-radius:3px;overflow:hidden;min-width:280px;}
+  .win-dialog .wd-head{
+    background:linear-gradient(#6f93b7,#456486);color:#fff;padding:4px 10px;font-weight:bold;
+    display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+  .win-dialog .wd-head .x{cursor:pointer;padding:0 4px;}
+  .win-dialog .wd-body{padding:22px 26px;display:flex;align-items:center;gap:14px;color:#233;}
+  .win-dialog .wd-body .ic{width:34px;height:34px;border-radius:50%;background:#2f80c0;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;flex:0 0 34px;}
+  .win-dialog .wd-foot{padding:8px;display:flex;justify-content:center;border-top:1px solid #cdd8e2;background:#e6edf4;}
+
+  /* KERIS search popup */
+  .keris{width:960px;max-width:80vw;max-height:76.667vh;background:#eaf1f7;border:1px solid #2f5680;
+    box-shadow:0 12px 40px rgba(0,0,0,.4);border-radius:4px;display:flex;flex-direction:column;}
+  .keris .k-head{background:linear-gradient(#6f93b7,#3d5c7e);color:#fff;padding:6px 12px;
+    display:flex;align-items:center;font-size:13px;font-weight:bold;gap:6px;}
+  .keris .k-head:before{content:"\1F50E";}
+  .keris .k-head .bc{margin-left:auto;font-weight:normal;color:#d8e6f4;font-size:10px;}
+  .keris .k-head .x{cursor:pointer;margin-left:10px;}
+
+  /* 상세정보/MARC 창을 동시에 띄우고 각각 드래그로 옮길 수 있게 한다 */
+  .overlay.floatwrap{background:transparent;pointer-events:none;}
+  .overlay.floatwrap .keris{pointer-events:auto;}
+  .keris.floatwin{position:absolute;}
+  .keris.floatwin .k-head{cursor:move;user-select:none;}
+  .k-form{padding:10px 12px;background:#e0eaf2;border-bottom:1px solid #c0d0de;}
+  .k-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+  .k-row select,.k-row input{font-size:12px;padding:3px 6px;border:1px solid #a9bccc;}
+  .k-row .qin{flex:1;min-width:120px;}
+  .k-row .lbl{width:70px;color:#2d4a63;font-weight:bold;}
+  .k-actions{display:flex;justify-content:center;gap:8px;padding-top:2px;}
+  .k-results{flex:1;overflow:auto;background:#fff;margin:0;}
+  .k-foot{padding:8px;display:flex;justify-content:center;gap:8px;background:#e6edf4;border-top:1px solid #cdd8e2;}
+  .k-count{padding:4px 12px;font-size:11px;color:#2d4a63;background:#e0eaf2;}
+  .k-count b{color:#0a3d62;}
+
+  .hint{position:fixed;bottom:10px;left:56px;background:rgba(0,0,0,.72);color:#fff;
+    padding:7px 12px;border-radius:5px;font-size:11px;max-width:520px;line-height:1.5;z-index:60;}
+  .hint b{color:#7fd0ff;}
+  .hint .close{float:right;margin-left:10px;cursor:pointer;color:#ffd;}
+
+  /* ---------- 편목 (cataloging) ---------- */
+  .marc .new852{background:var(--label-green);border-top:1px solid var(--label-green-bd);
+    padding:8px 10px;display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+  .marc .new852 label{color:#2f4a2f;font-weight:bold;}
+  .marc .new852 .room{color:#2f4a2f;background:#fff;border:1px solid #9fb59f;padding:1px 6px;}
+  #new852-input{font-family:"Consolas","D2Coding",monospace;font-size:12px;padding:4px 6px;
+    border:1px solid #9fb59f;flex:1;}
+  .btn.ai{background:#4a3f8f;border-color:#372e73;color:#fff;}
+  .btn.ai:hover{background:#5a4ea3;}
+
+  .ai852-box:empty{display:none;}
+  .ai852-box{background:#f4f2fb;border-top:1px solid #d8d2ee;padding:8px 12px;
+    max-height:220px;overflow-y:auto;font-size:11.5px;flex:0 0 auto;}
+  .ai852-head{font-weight:bold;color:#4a3f8f;margin-bottom:5px;}
+  .ai852-loading{color:#666;font-style:italic;}
+  .ai852-err{color:#b02020;}
+  .ai852-escalate{background:#ffe4a8;border:1px solid #e0a020;color:#5c3d00;
+    font-weight:bold;padding:5px 8px;margin-bottom:5px;border-radius:3px;}
+  .ai852-cand{position:relative;border:1px solid #d8d2ee;background:#fff;border-radius:4px;
+    padding:5px 8px;margin-bottom:5px;cursor:pointer;}
+  .ai852-cand:hover{border-color:#4a3f8f;}
+  .ai852-cand.sel{border-color:#4a3f8f;background:#ece8fb;}
+  .ai852-cand.top1{border:2px solid #d02020;background:#fff5f5;}
+  .ai852-cand.hastag{margin-top:15px;}
+  .ai852-cand .fit{color:#d32f2f;font-weight:600;font-size:10.5px;}
+  .ai852-cand .shelflabel{color:#222;margin-left:6px;}
+  .ai852-cand .reason{color:#444;margin-top:3px;line-height:1.4;}
+  .ai852-cand .top1tag{position:absolute;top:-13px;left:8px;background:#fff;
+    border:1px solid #d02020;border-radius:10px;padding:1px 9px;color:#d02020;
+    font-weight:bold;font-size:10.5px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);}
+  .ai852-cand .cited{color:#4a3f8f;margin-top:3px;font-size:10.5px;}
+  .ai852-memo-wrap{margin-top:5px;cursor:default;}
+  .ai852-memo-btn{color:#8a6d00;font-size:10.5px;cursor:pointer;user-select:none;}
+  .ai852-memo-btn:hover{text-decoration:underline;}
+  .ai852-memo-box{display:none;width:100%;box-sizing:border-box;margin-top:4px;
+    font-size:10.5px;color:#333;border:1px solid #e0c96a;background:#fffdf0;
+    border-radius:3px;padding:4px 6px;resize:vertical;font-family:inherit;
+    opacity:1;transition:opacity .15s;}
+  .ai852-memo-box.show{display:block;}
+  .ai852-memo-box.has-memo:not(:focus){opacity:.4;}
+  .ai852-more-toggle{color:#4a3f8f;font-size:10.5px;cursor:pointer;text-align:center;
+    padding:4px;margin-bottom:5px;border:1px dashed #c9c0ea;border-radius:4px;}
+  .ai852-more-toggle:hover{background:#ece8fb;}
+  .ai852-detbtn{float:right;font-size:10.5px;color:#4a3f8f;background:#fff;
+    border:1px solid #4a3f8f;border-radius:3px;padding:2px 7px;cursor:pointer;}
+  .ai852-detbtn:hover{background:#ece8fb;}
+
+  .adx-sec{margin-bottom:14px;}
+  .adx-sec h4{margin:0 0 5px;color:#2f5680;font-size:12.5px;}
+  .adx-msg{color:#555;margin-bottom:2px;}
+  .adx-kw span{display:inline-block;background:#eaf1f7;border:1px solid #cdd8e2;
+    border-radius:10px;padding:2px 9px;margin:2px 4px 2px 0;font-size:11px;}
+  .adx-cand{position:relative;border:1px solid #d8d2ee;border-radius:5px;padding:8px 10px;margin-bottom:8px;}
+  .adx-cand.gold{border:2px solid #1a7a3c;background:#f2fbf5;}
+  .adx-rank{color:#4a3f8f;font-weight:bold;}
+  .adx-cand .fit{color:#d32f2f;font-weight:600;}
+  .adx-src{display:inline-block;background:#ece8fb;color:#4a3f8f;border-radius:3px;
+    padding:1px 6px;font-size:10px;margin-left:5px;}
+  .adx-goldtag{display:inline-block;color:#1a7a3c;font-weight:bold;font-size:10.5px;margin-left:5px;}
+  .adx-label{color:#666;font-size:11px;margin:3px 0;}
+  .adx-reason{color:#333;margin:4px 0;}
+  .adx-cited{background:#f7f6fc;border-left:3px solid #c9c0ea;padding:5px 8px;margin-top:5px;}
+  .adx-cited .ct{font-weight:bold;color:#4a3f8f;font-size:11px;}
+  .adx-cited .cd{color:#555;font-size:11px;margin:2px 0 4px;}
+  .adx-cited .nodesc{font-weight:normal;color:#999;font-size:10.5px;}
+  .adx-outlier{border:1px dashed #cf8a1f;background:#fff8ea;border-radius:4px;
+    padding:5px 8px;margin-bottom:5px;color:#6b4a05;}
+
+  /* ---------- 후보 카드 '+' 버튼 · 참고 도서(최대 40권) 원형 클러스터 시각화 ---------- */
+  .adx-plus{position:absolute;top:6px;right:8px;width:22px;height:22px;border-radius:50%;
+    border:1px solid #b7addf;background:#fff;color:#4a3f8f;font-size:15px;line-height:1;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;
+    transition:background .15s,transform .15s;}
+  .adx-plus:hover{background:#ece8fb;transform:scale(1.08);}
+  .adx-bubble-wrap{margin-top:8px;border-top:1px dashed #d8d2ee;padding-top:8px;}
+  .bubble-stage{position:relative;margin:0 auto;background:radial-gradient(circle at 50% 45%,#f7f6fc 0%,#fbfaff 70%);
+    border-radius:8px;overflow:hidden;}
+  .bubble-circle{position:absolute;border-radius:50%;
+    background:linear-gradient(135deg,#c9bdf0,#8f7ad6);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;
+    cursor:pointer;box-shadow:0 1px 3px rgba(74,63,143,.35);
+    transition:transform .12s,box-shadow .12s,z-index 0s;}
+  .bubble-circle:hover{transform:scale(1.35);z-index:5;box-shadow:0 3px 10px rgba(74,63,143,.55);
+    background:linear-gradient(135deg,#8f7ad6,#4a3f8f);}
+  .bubble-tip{position:absolute;left:0;top:0;pointer-events:none;background:#2b2350;color:#fff;
+    border-radius:5px;padding:6px 9px;font-size:11.5px;line-height:1.5;max-width:220px;
+    box-shadow:0 3px 10px rgba(0,0,0,.28);z-index:10;white-space:normal;}
+  .bubble-tip b{color:#e3d9ff;}
+  .bubble-empty{color:#999;font-size:11.5px;padding:6px 2px;}
+
+  .loc-dialog .ld-body{padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
+  .loc-dialog .ld-row{display:flex;align-items:center;gap:8px;}
+  .loc-dialog .ld-row label{width:66px;color:#2d4a63;font-weight:bold;}
+  .loc-dialog select{flex:1;font-size:12px;padding:3px 6px;border:1px solid #a9bccc;}
+
+  /* ---------- 편목 화면 발표용 글자 확대 (공백 여유 있어 전체적으로 키움) ---------- */
+  #view-pyeonmok .infobar{font-size:14px;}
+  #pmk-grid{font-size:15px;}
+  #pmk-grid th{padding:6px 8px;}
+  #pmk-grid td{padding:6px 8px;}
+
+  /* 아카이브 화면도 편목과 동일하게 발표용 글자 확대 */
+  #view-archive .infobar{font-size:14px;}
+  #arc-grid{font-size:15px;}
+  #arc-grid td:nth-child(5){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #arc-grid th{padding:6px 8px;}
+  #arc-grid td{padding:6px 8px;}
+
+  #ov-marcedit .k-head{font-size:17px;}
+  #ov-marcedit .marc .m-meta{font-size:14px;padding:7px 8px;}
+  #ov-marcedit .marc .m-meta input,
+  #ov-marcedit .marc .m-meta select{font-size:14px;}
+  #ov-marcedit .marc .m-body{font-size:15px;line-height:1.75;}
+  #ov-marcedit .marc .new852 label{font-size:14px;}
+  #ov-marcedit #new852-input{font-size:15px;}
+  #ov-marcedit .k-row select,#ov-marcedit .k-row input{font-size:15px;}
+
+  #ov-marcedit .ai852-box{font-size:14px;max-height:420px;}
+  #ov-marcedit .ai852-head{font-size:15px;}
+  #ov-marcedit .ai852-cand .fit{font-size:13px;}
+  #ov-marcedit .ai852-cand .top1tag{font-size:13px;}
+  #ov-marcedit .ai852-cand .cited{font-size:13px;}
+  #ov-marcedit .ai852-cand .shelflabel{font-size:13px;}
+  #ov-marcedit .ai852-memo-btn{font-size:13px;}
+  #ov-marcedit .ai852-memo-box{font-size:13px;}
+  #ov-marcedit .ai852-more-toggle{font-size:13px;}
+  #ov-marcedit .ai852-detbtn{font-size:13px;padding:3px 9px;}
+
+  #ov-callsearch .k-row select,#ov-callsearch .k-row input{font-size:15px;}
+  #ov-callsearch .k-count{font-size:14px;}
+
+  #ov-aidetail .k-head{font-size:17px;}
+  #aidetail-body{font-size:15px !important;line-height:1.75 !important;}
+  #aidetail-body .adx-sec h4{font-size:16px;}
+  #aidetail-body .adx-kw span{font-size:13px;}
+  #aidetail-body .adx-src{font-size:12px;}
+  #aidetail-body .adx-goldtag{font-size:12.5px;}
+  #aidetail-body .adx-label{font-size:13.5px;}
+  #aidetail-body .adx-cited .ct{font-size:13.5px;}
+  #aidetail-body .adx-cited .cd{font-size:13.5px;}
+  #aidetail-body .bubble-tip{font-size:12.5px;}
+  #aidetail-body .adx-plus{width:24px;height:24px;font-size:16px;}
+
+  /* ---------- 사이드바 좌하단 모니터(청구기호 오류 아웃라이어) 버튼 ---------- */
+  .sb-monitor{
+    margin:4px;padding:7px 8px;border-radius:3px;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;gap:6px;
+    background:linear-gradient(#fff5f5,#ffe9e9);border:1px solid #eab8b8;
+    color:#a12; font-weight:bold; font-size:12px;
+  }
+  .sb-monitor:hover{background:linear-gradient(#ffecec,#ffdada);}
+  .mon-badge{background:#d33;color:#fff;border-radius:9px;padding:1px 7px;font-size:11px;font-weight:bold;}
+  .mon-badge.zero{background:#aaa;}
+
+  /* ---------- 모니터 팝업(전체화면) ---------- */
+  #ov-monitor .keris{width:83.333vw;max-width:83.333vw;height:83.333vh;max-height:83.333vh;}
+  #ov-monitor .k-head{font-size:17px;}
+  #ov-monitor .k-results{height:auto;flex:1;max-height:none;}
+  #ov-monitor #mon-grid{font-size:15px;}
+  #ov-monitor #mon-grid th{font-size:14px;}
+  #ov-monitor .mon-btn{font-size:13px;padding:4px 10px;}
+  #ov-monitor .mon-status{font-size:14px;}
+  .mon-pick{display:flex;flex-direction:column;gap:3px;align-items:center;}
+  .mon-btn{border:1px solid #ccc;border-radius:3px;background:#fff;font-size:11px;
+    padding:2px 8px;cursor:pointer;min-width:52px;}
+  .mon-btn.ok{color:#1e8e3e;border-color:#9bd6ae;}
+  .mon-btn.ok:hover{background:#eaf7ee;}
+  .mon-btn.fix{color:#1a56db;border-color:#a9c1f5;}
+  .mon-btn.fix:hover{background:#eaf1ff;}
+  .mon-status{font-weight:bold;}
+  .mon-status.flag{color:#d33;}
+  .mon-status.ok{color:#1e8e3e;}
+  .mon-status.fixed{color:#1a56db;}
+  tr.mon-row.ok td{background:#f2fbf4;}
+  tr.mon-row.fixed td{background:#f1f6ff;}
+  .mon-call{font-family:inherit;}
+  .mon-call.tobe{color:#4a3f8f;font-weight:bold;}
+  tr.mon-fixlog-toggle-row{cursor:pointer;background:#f5f7fb;user-select:none;}
+  tr.mon-fixlog-toggle-row:hover td{background:#eaf1ff;}
+  tr.mon-fixlog-toggle-row td{color:#1a56db;font-weight:bold;font-size:12px;padding:6px 8px;}
+  tr.mon-fixlog-toggle-row .car{display:inline-block;transition:transform .15s;font-size:10px;}
+  tr.mon-fixlog-toggle-row.open .car{transform:rotate(90deg);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="main">
+    <!-- top tabs -->
+    <div class="topbar">
+      <div class="tabs">
+        <div class="tab active" id="tab-catalog" onclick="switchTab('catalog')">종합목록</div>
+        <div class="tab" id="tab-biblio" onclick="switchTab('biblio')">서지</div>
+        <div class="tab" id="tab-pyeonmok" onclick="switchTab('pyeonmok')">편목</div>
+        <div class="tab" id="tab-archive" onclick="switchTab('archive')">기각사례</div>
+      </div>
+      <div class="win">&#128470;</div>
+    </div>
+
+    <div class="work">
+      <!-- sidebar -->
+      <div class="sidebar">
+        <div class="sb-head">Mymenu <span class="star">&#9733; &#9656;</span></div>
+        <div class="sb-list">
+          <div class="sb-item" onclick="switchTab('biblio')">서지</div>
+          <div class="sb-item sel" id="mi-catalog" onclick="openKeris()">종합목록</div>
+          <div class="sb-item" id="mi-pyeonmok" onclick="switchTab('pyeonmok')">편목</div>
+          <div class="sb-item" id="mi-archive" onclick="switchTab('archive')">기각사례</div>
+          <div class="sb-monitor" onclick="openMonitor()">🔎 Monitor <span class="mon-badge" id="mon-badge">0</span></div>
+        </div>
+        <div class="sb-foot">Menu
+          <select><option>콘텐츠</option></select>
+        </div>
+      </div>
+
+      <!-- ============ CONTENT ============ -->
+      <div class="content">
+
+        <!-- ---------- 종합목록 view ---------- -->
+        <div id="view-catalog">
+          <div class="cbar"><span class="ct">종합목록</span>
+            <span class="bc">콘텐츠 &gt; 목록 &gt; 서지간략정보 &gt; 종합목록</span></div>
+          <div class="toolbar">
+            <span class="spacer"></span>
+            <button class="btn" onclick="openKeris()">서지검색</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">프리즘 신청</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">KERIS 처리현황</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">공지</button>
+            <span class="flagico"></span><span class="flagico"></span>
+          </div>
+          <div class="infobar">검색건수 : <b id="cat-count">&nbsp;0</b>
+            <span class="right" id="cat-query"></span></div>
+
+          <div class="gridwrap topgrid">
+            <table class="grid" id="cat-grid">
+              <thead><tr>
+                <th style="width:34px">No.</th><th style="width:80px">제어번호</th>
+                <th style="width:230px">서명</th><th style="width:110px">저자</th>
+                <th style="width:150px">출판사</th><th style="width:60px">출판년</th>
+                <th style="width:70px">등록일</th><th style="width:60px">상태</th>
+                <th style="width:50px">MARC</th><th style="width:70px">원본파일</th>
+                <th style="width:50px">초록</th><th style="width:50px">목차</th>
+                <th style="width:70px">소장여부</th><th style="width:90px">DB선택</th>
+              </tr></thead>
+              <tbody id="cat-body">
+                <!-- filled after search -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="split">
+            <div class="left">
+              <div class="gridwrap" style="height:320px;margin:0;">
+                <table class="grid" id="hold-grid">
+                  <thead><tr>
+                    <th style="width:34px">No.</th><th>소장대학</th>
+                    <th style="width:64px">분류방식</th><th style="width:64px">분류기호</th>
+                    <th style="width:80px">저자기호</th>
+                  </tr></thead>
+                  <tbody id="hold-body"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="right">
+              <div class="marc" style="height:320px;" id="marc-panel">
+                <div class="m-head">KERIS MARC Editor
+                  <span class="bc">콘텐츠 &gt; 목록 &gt; 서지간략정보 &gt; 종합목록</span></div>
+                <div class="m-tabs"><span title="이번 데모에서는 지원하지 않습니다">파일</span><span title="이번 데모에서는 지원하지 않습니다">부가업무</span><span title="이번 데모에서는 지원하지 않습니다">다국어입력</span></div>
+                <div class="m-meta">
+                  <label>제어번호</label><span class="box" id="marc-ctrl"></span>
+                  <label><input type="checkbox"> 고정장 보기</label>
+                  <select><option>자관저장</option></select>
+                  <label>종류</label><select><option>통합KORMARC</option></select>
+                  <label><input type="checkbox"> 가변장도움말</label>
+                  <label><input type="checkbox"> 풍선도움말</label>
+                </div>
+                <div class="m-meta">
+                  <label>MARC생성일</label><span class="box" id="m-d1">&nbsp;</span>
+                  <label>자관입력일</label><span class="box" id="m-d2">&nbsp;</span>
+                  <label>최종갱신일</label><span class="box" id="m-d3">&nbsp;</span>
+                </div>
+                <div class="m-body" id="marc-body"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- 서지 view ---------- -->
+        <div id="view-biblio" style="display:none;">
+          <div class="cbar"><span class="ct">서지</span>
+            <span class="bc">콘텐츠 &gt; 목록 &gt; 서지간략정보 &gt; 서지</span></div>
+
+          <div class="searchbar">
+            <select id="bi-field" onchange="toggleBiField()">
+              <option>제어번호</option><option>서명</option><option>저자</option>
+              <option selected>청구기호</option><option>키워드</option><option>ISBN</option>
+            </select>
+            <input class="qfield" id="bi-q1" value="294.344" style="width:150px;">
+            <span class="tilde" id="bi-tilde">~</span>
+            <input class="qfield" id="bi-q2" value="294.344" style="width:150px;">
+            <select><option>AND</option><option>OR</option></select>
+            <span class="push">
+              <button class="btn gray" onclick="resetBiblio()">초기화</button>
+              <button class="btn" onclick="searchBiblio()">&#128269; Search</button>
+            </span>
+          </div>
+          <div class="exp"><span title="이번 데모에서는 지원하지 않습니다">&#128269; &#8597;</span></div>
+
+          <div class="toolbar">
+            <span class="spacer"></span>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">서지검색</button>
+            <button class="btn gray" onclick="searchBiblio()">새로고침</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">신규</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">마크반입</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">엑셀반입</button>
+            <button class="btn" disabled title="이번 데모에서는 지원하지 않습니다">콘텐츠반입</button>
+            <span class="flagico"></span><span class="flagico"></span>
+          </div>
+          <div class="infobar">검색건수 : <b id="bi-count">&nbsp;0</b>
+            <span class="right" id="bi-query"></span></div>
+
+          <div class="gridwrap" style="height:calc(83.333vh - 183px);">
+            <table class="grid" id="bi-grid">
+              <thead><tr>
+                <th style="width:32px">No.</th><th style="width:70px">등록번호</th>
+                <th style="width:220px">서명</th><th style="width:120px">저자</th>
+                <th style="width:110px">출판사</th><th style="width:52px">출판년&#9660;</th>
+                <th style="width:56px">별치기호</th><th style="width:135px">청구기호</th>
+                <th style="width:44px">MARC</th><th style="width:42px">원문</th>
+                <th style="width:42px">권호</th><th style="width:42px">권차</th>
+                <th style="width:40px">복본</th><th style="width:90px">소장처</th>
+                <th style="width:80px">자료실</th><th style="width:40px">서가</th>
+                <th style="width:70px">자료상태</th><th style="width:100px">제어번호</th>
+                <th style="width:70px">원부번호</th><th style="width:66px">서지Blind</th>
+                <th style="width:74px">아이템Blind</th>
+              </tr></thead>
+              <tbody id="bi-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ---------- 편목 view ---------- -->
+        <div id="view-pyeonmok" style="display:none;">
+          <div class="cbar"><span class="ct">편목</span>
+            <span class="bc">콘텐츠 &gt; 목록 &gt; 편목 &gt; 신착도서</span></div>
+          <div class="toolbar">
+            <span class="spacer"></span>
+            <button class="btn gray" onclick="renderQueue()">새로고침</button>
+          </div>
+          <div class="infobar">검색건수 : <b id="pmk-count">&nbsp;0</b>
+            <span class="right">신착도서 등록번호순 &middot; 행을 더블클릭하면 MARC 상세정보가 열립니다.</span></div>
+          <div class="gridwrap" style="height:calc(83.333vh - 158px);">
+            <table class="grid" id="pmk-grid">
+              <thead><tr>
+                <th style="width:34px">No.</th><th style="width:70px">상태</th>
+                <th style="width:110px">청구기호</th>
+                <th style="width:280px">서명</th><th style="width:140px">저자</th>
+                <th style="width:100px">등록번호</th>
+              </tr></thead>
+              <tbody id="pmk-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ---------- 아카이브 view ---------- -->
+        <div id="view-archive" style="display:none;">
+          <div class="cbar"><span class="ct">기각사례</span>
+            <span class="bc">콘텐츠 &gt; 목록 &gt; 편목 &gt; 기각사례</span></div>
+          <div class="toolbar">
+            <span class="spacer"></span>
+            <button class="btn gray" onclick="renderArchive()">새로고침</button>
+          </div>
+          <div class="infobar">검색건수 : <b id="arc-count">&nbsp;0</b>
+            <span class="right">AI 1순위(최고 신뢰도)가 아닌 후보를 사서가 선택한 경우만 기록됩니다.</span></div>
+          <div class="gridwrap" style="height:calc(83.333vh - 158px);">
+            <table class="grid" id="arc-grid">
+              <thead><tr>
+                <th style="width:34px">No.</th>
+                <th style="width:240px">서명</th>
+                <th style="width:95px">AI결정<br>청구기호</th>
+                <th style="width:95px">사서결정<br>청구기호</th>
+                <th style="width:420px">메모</th>
+                <th style="width:130px">시간</th>
+              </tr></thead>
+              <tbody id="arc-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /work -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ===== KERIS search popup ===== -->
+<div class="overlay" id="ov-keris">
+  <div class="keris">
+    <div class="k-head">KERIS 검색
+      <span class="bc">콘텐츠 &gt; 목록 &gt; 서지간략정보 &gt; 종합목록</span>
+      <span class="x" onclick="closeKeris()">&#10006;</span></div>
+    <div class="k-form">
+      <div class="k-row">
+        <select id="k-f1"><option selected>서명</option><option>저자</option>
+          <option>발행처</option><option>ISBN</option><option>키워드</option></select>
+        <input class="qin" id="k-q1" placeholder="검색어를 입력하세요" value="부처의 생각하지 않는 연습">
+        <select><option>AND</option><option>OR</option><option>NOT</option></select>
+      </div>
+      <div class="k-row">
+        <select id="k-f2"><option selected>저자</option><option>서명</option>
+          <option>발행처</option><option>ISBN</option></select>
+        <input class="qin" id="k-q2" placeholder="검색어를 입력하세요">
+        <select><option>AND</option></select>
+      </div>
+      <div class="k-actions">
+        <button class="btn gray" onclick="clearKeris()">초기화</button>
+        <button class="btn" onclick="runKerisSearch()">&#128269; 검색</button>
+      </div>
+    </div>
+    <div class="k-count">검색건수 : <b id="k-count">0</b></div>
+    <div class="k-results" style="height:300px;">
+      <table class="grid" id="k-grid">
+        <thead><tr>
+          <th style="width:34px">No.</th><th style="width:80px">제어번호</th>
+          <th style="width:240px">서명</th><th style="width:110px">저자</th>
+          <th style="width:150px">발행처</th><th style="width:56px">발행년</th>
+          <th style="width:120px">ISBN</th><th style="width:56px">자료유형</th>
+          <th style="width:80px">소장기관수</th>
+        </tr></thead>
+        <tbody id="k-body">
+          <tr><td colspan="9" style="text-align:center;color:#999;padding:40px;">
+            검색어를 입력하고 [검색] 버튼을 누르세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="k-foot">
+      <button class="btn" onclick="importSelected()">선택자료 가져오기</button>
+      <button class="btn gray" onclick="closeKeris()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== no-result dialog ===== -->
+<div class="overlay" id="ov-noresult">
+  <div class="win-dialog">
+    <div class="wd-head"><span>information</span><span class="x" onclick="hide('ov-noresult')">&#10006;</span></div>
+    <div class="wd-body"><div class="ic">i</div><div>검색 결과 값이 없습니다.</div></div>
+    <div class="wd-foot"><button class="btn" style="min-width:70px" onclick="hide('ov-noresult')">확인</button></div>
+  </div>
+</div>
+
+<!-- ===== MARC 상세정보 (편목) ===== -->
+<div class="overlay" id="ov-marcedit">
+  <div class="keris floatwin" style="width:1080px;max-width:80vw;">
+    <div class="k-head">MARC 상세정보 - 편목
+      <span class="bc">콘텐츠 &gt; 목록 &gt; 편목 &gt; 신착도서</span>
+      <span class="x" onclick="closeMarcEdit()">&#10006;</span></div>
+    <div class="marc" style="height:560px;border:none;">
+      <div class="m-tabs"><span title="이번 데모에서는 지원하지 않습니다">파일</span><span title="이번 데모에서는 지원하지 않습니다">부가업무</span><span title="이번 데모에서는 지원하지 않습니다">다국어입력</span><button class="btn gray" style="margin-left:10px;padding:2px 10px;" onclick="openLocationDialog()">소장처설정</button></div>
+      <div class="m-meta">
+        <label>등록번호</label><span class="box" id="pmk-me-reg"></span>
+        <label>서명</label><span class="box" id="pmk-me-title" style="min-width:280px;"></span>
+      </div>
+      <div class="m-body" id="pmk-me-body"></div>
+      <div class="new852">
+        <label>852 청구기호</label>
+        <span class="room" id="new852-room">단행본서가</span>
+        <input id="new852-input" placeholder="예: 641.3383 B171h">
+        <button class="btn gray" onclick="openCallSearch()">서지검색</button>
+        <button class="btn ai" onclick="runAIModel()">AI-search</button>
+      </div>
+      <div class="ai852-box" id="ai852-box"></div>
+    </div>
+    <div class="k-foot">
+      <button class="btn" onclick="saveRecord()">저장</button>
+      <button class="btn gray" onclick="closeMarcEdit()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 소장처설정 ===== -->
+<div class="overlay" id="ov-location">
+  <div class="win-dialog loc-dialog">
+    <div class="wd-head"><span>소장처설정</span><span class="x" onclick="hide('ov-location')">&#10006;</span></div>
+    <div class="ld-body">
+      <div class="ld-row"><label>소장처</label><select id="loc-inst"><option>중앙도서관</option></select></div>
+      <div class="ld-row"><label>자료실</label>
+        <select id="loc-room">
+          <option>대형자료서가</option><option selected>단행본서가</option><option>보관서고</option>
+          <option>이용저조자료</option><option>별치기록실</option><option>소장전용</option>
+          <option>참고열람실(북/CD)</option><option>국내연속간행물서가</option><option>Web DB</option>
+          <option>국내학위논문실</option><option>서양원문서고</option><option>서양연속간행물</option>
+          <option>문형기록물</option><option>격보존자료</option><option>물류서가</option>
+        </select>
+      </div>
+    </div>
+    <div class="wd-foot">
+      <button class="btn" style="min-width:70px" onclick="applyLocation()">확인</button>
+      <button class="btn gray" style="min-width:70px" onclick="hide('ov-location')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 서지검색 (청구기호 인접번호 조회 - 편목 중 세부번호 결정용) ===== -->
+<div class="overlay" id="ov-callsearch">
+  <div class="keris" style="width:920px;max-width:80vw;">
+    <div class="k-head">서지검색 - 청구기호 조회
+      <span class="bc">콘텐츠 &gt; 목록 &gt; 편목 &gt; 서지검색</span>
+      <span class="x" onclick="hide('ov-callsearch')">&#10006;</span></div>
+    <div class="k-form">
+      <div class="k-row">
+        <select id="cs-field" style="margin-right:6px;" onchange="onCallSearchFieldChange()">
+          <option value="키워드">키워드</option>
+          <option value="청구기호">청구기호</option>
+        </select>
+        <input class="qin" id="cs-q1" style="max-width:180px;flex:none;">
+        <button class="btn" onclick="runCallSearch()">&#128269; 검색</button>
+      </div>
+    </div>
+    <div class="k-count">검색건수 : <b id="cs-count">0</b></div>
+    <div class="k-results" style="height:420px;">
+      <table class="grid" id="cs-grid">
+        <thead><tr>
+          <th style="width:34px">No.</th><th style="width:130px">청구기호</th>
+          <th style="width:300px">서명</th><th style="width:180px">저자</th>
+          <th style="width:110px">등록번호</th>
+        </tr></thead>
+        <tbody id="cs-body">
+          <tr><td colspan="5" style="text-align:center;color:#999;padding:40px;">청구기호를 입력하고 검색하세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="k-foot">
+      <button class="btn gray" onclick="hide('ov-callsearch')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 저장 완료 ===== -->
+<div class="overlay" id="ov-savedone">
+  <div class="win-dialog">
+    <div class="wd-head"><span>information</span><span class="x" onclick="confirmSaveDone()">&#10006;</span></div>
+    <div class="wd-body"><div class="ic">i</div><div>발견된 오류가 없습니다.</div></div>
+    <div class="wd-foot"><button class="btn" style="min-width:70px" onclick="confirmSaveDone()">확인</button></div>
+  </div>
+</div>
+
+<!-- ===== AI 상세정보 (판정 과정 · 근거) ===== -->
+<div class="overlay floatwrap" id="ov-aidetail">
+  <div class="keris floatwin" style="width:820px;">
+    <div class="k-head">🔬 상세정보 — AI 판정 과정과 근거
+      <span class="x" onclick="hide('ov-aidetail')">&#10006;</span></div>
+    <div id="aidetail-body" style="padding:14px 18px;overflow-y:auto;max-height:65vh;font-size:12px;line-height:1.55;"></div>
+  </div>
+</div>
+
+<!-- ===== Monitor (청구기호 오류 아웃라이어 점검) ===== -->
+<div class="overlay" id="ov-monitor">
+  <div class="keris" style="width:960px;max-width:80vw;">
+    <div class="k-head">🔎 Monitor — 청구기호 오류 의심(아웃라이어) 점검
+      <span class="bc">콘텐츠 &gt; 목록 &gt; 편목 &gt; Monitor</span>
+      <span class="x" onclick="hide('ov-monitor')">&#10006;</span></div>
+    <div class="k-results">
+      <table class="grid" id="mon-grid">
+        <thead><tr>
+          <th style="width:70px"></th>
+          <th style="width:80px">Status</th>
+          <th style="width:110px">To-be<br><span style="font-weight:normal;">(AI 판단)</span></th>
+          <th style="width:110px">As-is<br><span style="font-weight:normal;">(현재)</span></th>
+          <th style="width:300px">서명</th>
+          <th style="width:140px">저자</th>
+        </tr></thead>
+        <tbody id="mon-body"></tbody>
+        <tbody>
+          <tr class="mon-fixlog-toggle-row" id="mon-fixlog-toggle">
+            <td colspan="6">수정로그 (<span id="mon-fixlog-count">0</span>건)</td>
+          </tr>
+        </tbody>
+        <tbody id="mon-fixlog-body"></tbody>
+      </table>
+    </div>
+    <div class="k-foot">
+      <button class="btn gray" onclick="hide('ov-monitor')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="hint" id="hint">
+  <span class="close" onclick="document.getElementById('hint').style.display='none'">닫기 ✕</span>
+  <b>사용법</b> · 좌측 <b>종합목록</b> 클릭 → KERIS 검색창. 기본값 <b>‘부처의 생각하지 않는 연습’</b> [검색] → <b>결과 없음</b> 창.
+  <br>책이 나오는 3가지: <b>‘생각이 많아 부처님께 물었더니’</b> · <b>‘그만두지 않는 독서’</b>(2건) · <b>‘리셋 유어 마인드’</b> → [검색] 후 [선택자료 가져오기].
+  <br>상단 <b>서지</b> 탭 → 청구기호 <b>294.344</b> [Search] → 결과 목록.
+  <br>상단 <b>편목</b> 탭 → 대기열 행 더블클릭 → MARC 상세정보 → <b>소장처설정</b> → 852 청구기호 입력 → [저장].
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+// KERIS union-catalog search cases.
+// Each case: matchKeys (title fragments) + one or more result records.
+const BOOKS = [
+ {
+  query:"생각이 많아 부처님께 물었더니",
+  matchKeys:["생각이많아부처님께물었더니","생각이많아","물었더니","번뇌가사라지는"],
+  results:[{
+    ctrl:"17523379",
+    title:"생각이 많아 부처님께 물었더니 : 번뇌가 사라지는 다정한 불교 수업",
+    author:"승야준명",
+    pub:"21세기북스 북이십일 21세기북스",
+    year:"2026", isbn:"9791176610575", type:"단행본", inst:"5",
+    d1:"2026-06-22", d2:"2026-07-22", d3:"2026-06-25",
+    holdings:[
+      ["강원대학교 도서관","KDC","220.4","ㅁ174ㅅㅂ"],
+      ["경기대학교 중앙도서관(수원)","DDC","294.34","승62ㅅ,백"],
+      ["단국대학교 퇴계기념도서관","DDC","214.8","승429ㅇㅋㅂ"],
+      ["상명대학교 서울캠퍼스 도서관","DDC","294.34","승야생백"],
+      ["연세대학교 학술문화처 도서관","DDC","294.34","0267ㅑ"]
+    ],
+    marc:[
+      ["007","",[["","ta"]]],
+      ["020","",[["a","9791176610575"],["g","03100 :"],["c","₩17900"]]],
+      ["035","",[["a","(KERIS)BIB000017523379"]]],
+      ["040","",[["a","241002"],["c","241002"]]],
+      ["041","1 ",[["a","kor"],["h","jpn"]]],
+      ["082","04",[["a","294.34"],["2","23"]]],
+      ["100","1 ",[["a","승야준명"],["g","(桝野俊明),"],["d","1953-"]]],
+      ["245","10",[["a","생각이 많아 부처님께 물었더니 :"],["b","번뇌가 사라지는 다정한 불교 수업 /"],["d","마스노 슌묘 지음;"],["e","백운숙 옮김"]]],
+      ["246","19",[["","あらゆる悩みが消えゆく凛と生きるための禅メンタル"]]],
+      ["260","",[["a","파주 :"],["b","21세기북스 :"],["b","북이십일 21세기북스,"],["c","2026"]]],
+      ["300","",[["a","230 p. :"],["b","삽도 ;"],["c","19 cm"]]],
+      ["500","",[["a","원저자명: 桝野俊明"]]],
+      ["546","",[["a","일본어 원작을 한국어로 번역"]]],
+      ["653","",[["a","설법"],["a","설교"],["a","불교"],["a","부처"],["a","번뇌"],["a","불교수업"]]],
+      ["700","1 ",[["a","백운숙"]]],
+      ["900","10",[["a","마스노 슌묘"]]],
+      ["900","10",[["a","Masuno Shunmyo,"],["d","1953-"]]],
+      ["900","10",[["a","Shunmyo, Masuno,"],["d","1953-"]]]
+    ]
+  }]
+ },
+ {
+  query:"그만두지 않는 독서",
+  matchKeys:["그만두지않는독서","그만두지않는","책모임","1만시간의기적"],
+  results:[
+   {
+    ctrl:"17525648",
+    title:"그만두지 않는 독서 : 책모임 1만 시간의 기적",
+    author:"김승호",
+    pub:"엑스북스",
+    year:"2026", isbn:"9791190216548", type:"단행본", inst:"5",
+    d1:"2026-06-22", d2:"2026-07-22", d3:"2026-07-01",
+    holdings:[
+      ["경기대학교 중앙도서관(수원)","DDC","028.9","김58ㄱ"],
+      ["국민대학교 성곡도서관","DDC","028.9","김58ㄱ"],
+      ["단국대학교 퇴계기념도서관","DDC","028.9","김781ㄱ"],
+      ["부산가톨릭대학교 중앙도서관","KDC","029.83","김57ㄱ"],
+      ["추계예술대학교 학술정보원","DDC","028.9","김815ㄱ"]
+    ],
+    marc:[
+      ["007","",[["","ta"]]],
+      ["020","",[["a","9791190216548"],["g","03810 :"],["c","₩16,800"]]],
+      ["035","",[["a","(KERIS)BIB000017525648"]]],
+      ["040","",[["a","211017"],["c","211017"]]],
+      ["082","04",[["a","028.9"],["2","23"]]],
+      ["100","1 ",[["a","김승호"]]],
+      ["245","10",[["a","그만두지 않는 독서 :"],["b","책모임 1만 시간의 기적 /"],["d","김승호 지음."]]],
+      ["260","",[["a","서울 :"],["b","엑스북스,"],["c","2026."]]],
+      ["300","",[["a","239 p. ;"],["c","19 cm."]]],
+      ["653","",[["a","독서"],["a","책모임"]]],
+      ["856","41",[["3","Table of Contents"],["u","http://www.riss.kr/keris_abstoc.do?no=17525648"]]]
+    ]
+   },
+   {
+    ctrl:"564170",
+    title:"그만두지 않는 독서",
+    author:"김승호",
+    pub:"(주)그린비출판사",
+    year:"2026", isbn:"9788976827418", type:"단행본", inst:"1",
+    d1:"2026-05-30", d2:"2026-07-22", d3:"2026-06-10",
+    holdings:[
+      ["추계예술대학교 학술정보원","DDC","028.9","김815ㄱ"]
+    ],
+    marc:[
+      ["007","",[["","ta"]]],
+      ["020","",[["a","9788976827418"],["g","03810"]]],
+      ["035","",[["a","(KERIS)BIB000000564170"]]],
+      ["040","",[["a","211017"],["c","211017"]]],
+      ["082","04",[["a","028.9"],["2","23"]]],
+      ["100","1 ",[["a","김승호"]]],
+      ["245","10",[["a","그만두지 않는 독서 /"],["d","김승호 지음."]]],
+      ["260","",[["a","서울 :"],["b","그린비출판사,"],["c","2026."]]],
+      ["300","",[["a","232 p. ;"],["c","19 cm."]]],
+      ["653","",[["a","독서"]]]
+    ]
+   }
+  ]
+ },
+ {
+  query:"리셋 유어 마인드",
+  matchKeys:["리셋유어마인드","리셋유어","resetyourmind","reseteatumente"],
+  results:[{
+    ctrl:"17530459",
+    title:"리셋 유어 마인드 : 반복되는 루틴에 가려진",
+    author:"Alonso Puig, Mario",
+    pub:"하움 오픈도어북스",
+    year:"2026", isbn:"9791173742897", type:"단행본", inst:"2",
+    d1:"2026-06-17", d2:"2026-07-22", d3:"2026-07-03",
+    holdings:[
+      ["경희대학교 국제캠퍼스 도서관","DDC","158.1","A454r K"],
+      ["부산대학교 중앙도서관","DDC","152.4","P979r한"]
+    ],
+    marc:[
+      ["007","",[["","ta"]]],
+      ["020","",[["a","9791173742897"],["g","03190 :"],["c","₩18000"]]],
+      ["035","",[["a","(KERIS)BIB000017530459"]]],
+      ["040","",[["a","241008"],["c","241008"]]],
+      ["041","1 ",[["a","kor"],["h","spa"]]],
+      ["082","04",[["a","158.1"],["2","23"]]],
+      ["245","00",[["a","리셋 유어 마인드 ="],["x","Reset your mind :"],["b","반복되는 루틴에 가려진 내 안의 잠재력과 마주하는 법 /"],["d","마리오 알론소 푸이그 지음 ;"],["e","성소회 옮김"]]],
+      ["246","19",[["a","Resetea tu mente :"],["b","descubre de lo que eres capaz"]]],
+      ["260","",[["a","군산 :"],["b","오픈도어북스 :"],["b","하움,"],["c","2026"]]],
+      ["300","",[["a","272 p. ;"],["b","삽화 ;"],["c","19 cm"]]],
+      ["500","",[["a","권말부록: 잠재력을 일깨우는 명상록"]]],
+      ["650"," 0",[["a","Mind and body"]]],
+      ["650"," 0",[["a","Philosophy of mind"]]],
+      ["650"," 0",[["a","Thought and thinking"]]],
+      ["700","1 ",[["a","Alonso Puig, Mario"]]],
+      ["700","1 ",[["a","성소회"]]],
+      ["765","0 ",[["t","Resetea tu mente : descubre de lo que eres capaz."],["d","[Madrid] : Espasa, 2021."],["z","[9788467062045]"]]],
+      ["900","10",[["a","알론소 푸이그, 마리오"]]]
+    ]
+  }]
+ }
+];
+
+// 서지 탭은 하드코딩 없이 /api/biblio (서강대 실제 장서 DB, sogang_db_final.db)를 그대로 조회한다.
+
+// 편목 대기열 (신착도서, 청구기호 미부여) - 실제 편목 화면 영상 기반
+// AI 1순위(최고 신뢰도) 후보가 아닌 걸 사서가 골랐을 때만 남는 기록 — 암묵지(현장 판단) 확인용.
+// 책(reg) 하나당 최신 상태 1건만 유지한다(logArchiveIfOverride 참고).
+// 아래 4건은 데모 시연용 하드코딩 예시(title·memo를 직접 갖고 있어 실제 CATALOG_QUEUE 항목과 무관).
+const ARCHIVE_LOG = [
+  {title:"인공지능과 저작권 : 창작의 경계는 어디인가", aiCall:"004.019", librarianCall:"346.510482",
+   memo:"법학도서관으로 이관...",
+   time:new Date("2026-08-27T11:20:37")},
+  {title:"조선의 뒷골목 풍경", aiCall:"911.05", librarianCall:"398.09519",
+   memo:"도서의 서술 비중이 큰 주제 고려하여 해당 주제의 장서가 많은 쪽으로 이관...",
+   time:new Date("2026-08-28T14:05:52")},
+  {title:"감정의 뇌과학", aiCall:"612.82", librarianCall:"152.4",
+   memo:"도서의 활용 목적과 독자층 고려하여 이관...",
+   time:new Date("2026-08-31T09:40:18")},
+  {title:"향신료의 지구사", aiCall:"381.09", librarianCall:"641.338309",
+   memo:"기존 유사 도서 분류 관행 고려하여 해당 주제의 장서가 많은 쪽으로 이관...",
+   time:new Date("2026-09-01T16:50:44")},
+];
+
+// Monitor(사이드바 좌하단) — 이미 편목 완료된 소장자료 중 청구기호가 잘못 배치된 것으로 보이는
+// 아웃라이어를 정기 점검하는 화면. 아래 5건은 데모 시연용 하드코딩 예시.
+// status: 'flag'(정정필요, 빨강) → 'ok'(정상, 초록) | 'fixed'(정정완료, 파랑)
+const MONITOR_OUTLIERS = [
+  {id:1, title:"(들리지 않던 총성) 종이폭탄! : 6.25전쟁과 심리전", author:"이윤규",
+   asIs:"355.02", toBe:"951.624", status:"flag"},
+  {id:2, title:"1억배 빠른 양자 컴퓨터가 온다", author:"서삼 수임",
+   asIs:"004.1", toBe:"006.4834", status:"flag"},
+  {id:3, title:"6·25전쟁 미 공군 항공전사", author:"Futrell, Robert Frank",
+   asIs:"951.9042", toBe:"951.624", status:"flag"},
+  {id:4, title:"Into war with an empty gun : a Korean war story", author:"Brownbridge, Robert",
+   asIs:"951.9042", toBe:"951.624", status:"flag"},
+  {id:5, title:"아무것도 간절하지 않은 날의 기술 : 고전 표지 속 미술가의 생각법", author:"최혜진",
+   asIs:"028.1", toBe:"811.48", status:"flag"},
+];
+
+const CATALOG_QUEUE = [
+ {
+  reg:"000001025257", title:"어느 완벽한 이중언어자 : 한 권으로 보는 2개 국어의 모든 것",
+  author:"주 앨리스 (Alice Joo)", h852:null, room:"단행본서가", status:"미편목",
+  case:"case10_bilingual", m852:null, i852:"J81ㅇ",
+  marc:[
+    ["007","",[["","ta"]]],
+    ["020","",[["a","9791197439520"],["g","04320"]]],
+    ["040","",[["a","211029"],["c","211029"],["d","211029"]]],
+    ["082","04",[["a","306.446"],["2","23"]]],
+    ["100","1 ",[["a","주앨리스="],["h","Alice Joo"]]],
+    ["245","10",[["a","어느 완벽한 이중언어자 :"],["b","한 권으로 보는 2개 국어의 모든 것 /"],["d","주 앨리스(Alice Joo) 지음"]]],
+    ["260","",[["a","서울 :"],["b","별내리,"],["c","2026"]]],
+    ["300","",[["a","272 p. :"],["b","삽화 ;"],["c","21 cm"]]]
+  ]
+ },
+ {
+  reg:"000001025244", title:"이것은 왜 오렌지주스인가 : 식품 혐오와 열광 사이에서 식품 라벨 읽기",
+  author:"자크 프롤리히 지음 ; 김병순 옮김", h852:null, room:"단행본서가", status:"미편목",
+  case:"case06_orange_juice", m852:"K", i852:"F638o",
+  marc:[
+    ["007","",[["","ta"]]],
+    ["020","",[["a","9791192169637"],["g","03900"]]],
+    ["040","",[["a","211029"],["c","211029"],["d","211029"]]],
+    ["041","1 ",[["a","kor"],["h","eng"]]],
+    ["082","04",[["a","363.19262"],["2","23"]]],
+    ["100","1 ",[["a","프롤리히, 자크"]]],
+    ["245","10",[["a","이것은 왜 오렌지주스인가 :"],["b","식품 혐오와 열광 사이에서 식품 라벨 읽기 /"],["d","자크 프롤리히 지음 ;"],["e","김병순 옮김"]]],
+    ["260","",[["a","서울 :"],["b","따비,"],["c","2026"]]],
+    ["300","",[["a","320 p. :"],["b","삽화 ;"],["c","21 cm"]]],
+    ["500","",[["a","본서는 \"From Label to Table: Regulating Food in America in the Information Age\"의 번역서임"]]],
+    ["700","1 ",[["a","김병순,"],["e","역"]]]
+  ]
+ },
+ {
+  reg:"000001032214", title:"향신료의 역사",
+  author:"Balard, Michel", h852:null, room:"단행본서가", status:"미편목",
+  case:"case03_spice_history", m852:"K", i852:"B171h",
+  marc:[
+    ["007","",[["","ta"]]],
+    ["020","",[["a","9791189568423"],["g","03900 :"],["c","₩19800"]]],
+    ["040","",[["a","211009"],["c","211009"]]],
+    ["041","1 ",[["a","kor"],["h","fre"]]],
+    ["082","04",[["a","641.3383"],["2","23"]]],
+    ["100","1 ",[["a","Balard, Michel"]]],
+    ["245","10",[["a","향신료의 역사 /"],["d","미셸 발라르 지음 ;"],["e","강형식 옮김"]]],
+    ["260","",[["a","서울 :"],["b","가람기획,"],["c","2026"]]],
+    ["300","",[["a","240 p. :"],["b","삽도 ;"],["c","21 cm"]]],
+    ["700","1 ",[["a","강형식"]]]
+  ]
+ },
+ {
+  reg:"000001025253", title:"게임으로 철학하기 : 재미, 예술성, 장르 등 비디오 게임을 둘러싼 수많은 질문들",
+  author:"주자안 지음 ; 정세경 옮김", h852:null, room:"단행본서가", status:"미편목",
+  case:"case07_game_philosophy", m852:"K", i852:"주16ㄱ",
+  marc:[
+    ["007","",[["","ta"]]],
+    ["020","",[["a","9788932324913"],["g","03690"]]],
+    ["040","",[["a","211029"],["c","211029"],["d","211029"]]],
+    ["041","1 ",[["a","kor"],["h","chi"]]],
+    ["082","04",[["a","102"],["2","23"]]],
+    ["100","1 ",[["a","주가안="],["h","朱家安,"],["d","1987-"]]],
+    ["245","10",[["a","게임으로 철학하기 :"],["b","재미, 예술성, 장르 등 비디오 게임을 둘러싼 수많은 질문들 /"],["d","주자안 지음 ;"],["e","정세경 옮김"]]],
+    ["246","19",[["","電玩哲學"]]],
+    ["260","",[["a","서울 :"],["b","현암사,"],["c","2026"]]],
+    ["300","",[["a","414 p. :"],["b","삽화 ;"],["c","21 cm"]]],
+    ["500","",[["a","본서는 \"電玩哲學\"의 번역서임"]]],
+    ["700","1 ",[["a","정세경,"],["e","역"]]]
+  ]
+ },
+ {
+  reg:"000001025247", title:"일리아스 좋아하세요? : 어느 덕후와 교수의 고전 교환독서",
+  author:"하길, 이준석", h852:null, room:"단행본서가", status:"미편목",
+  case:"case12_iliad", m852:null, i852:"하15ㅇ",
+  marc:[
+    ["007","",[["","ta"]]],
+    ["020","",[["a","9788936481285"],["g","03800"]]],
+    ["040","",[["a","211029"],["c","211029"],["d","211029"]]],
+    ["082","04",[["a","291.13"],["2","23"]]],
+    ["100","1 ",[["a","하길"]]],
+    ["245","10",[["a","일리아스 좋아하세요? :"],["b","어느 덕후와 교수의 고전 교환독서 /"],["d","하길(석민주), 이준석 지음"]]],
+    ["260","",[["a","파주 :"],["b","창비,"],["c","2026"]]],
+    ["300","",[["a","244 p. :"],["b","삽화 ;"],["c","19 cm"]]],
+    ["700","1 ",[["a","이준석="],["h","李濬碩"]]]
+  ]
+ }
+];
+
+/* ---------------- helpers ---------------- */
+function show(id){document.getElementById(id).classList.add('show');}
+function hide(id){document.getElementById(id).classList.remove('show');}
+
+// shared MARC field renderer (▼subfield markup) used by both 종합목록 and 편목
+// 852 필드가 아직 저장되지 않은 레코드의 화면 표시용 852를 만든다.
+// 소장처설정에서 확인을 누르면 ▼a·▼b만 채워지고, ▼h·▼i·▼m은 저장 전까지 빈칸으로 남는다.
+function buildDisplayMarc(q){
+  if(q.marc.some(f=>f[0]==='852')) return q.marc;
+  const loc = q._loc852 || {};
+  const subs = [["a",loc.a||""], ["b",loc.b||""], ["h",q._pendH||""], ["i",q._pendI||""], ["m",q._pendM||""]];
+  return q.marc.concat([["852","21",subs]]);
+}
+function marcFieldsHTML(marc){
+  return marc.map(f=>{
+    const subs = f[2].map(s=> s[0]? `<span class="sf">&#9660;${s[0]}</span>${s[1]}` : s[1]).join('');
+    const ind = f[1]? `<span class="ind">${f[1]}</span>` : `<span class="ind">&nbsp;&nbsp;</span>`;
+    return `<div class="mf"><span class="arw">&#187;</span> <span class="tag">${f[0]}</span> ${ind}  ${subs}</div>`;
+  }).join('');
+}
+
+function switchTab(which){
+  document.getElementById('tab-catalog').classList.toggle('active',which==='catalog');
+  document.getElementById('tab-biblio').classList.toggle('active',which==='biblio');
+  document.getElementById('tab-pyeonmok').classList.toggle('active',which==='pyeonmok');
+  document.getElementById('tab-archive').classList.toggle('active',which==='archive');
+  document.getElementById('view-catalog').style.display = which==='catalog'?'block':'none';
+  document.getElementById('view-biblio').style.display = which==='biblio'?'block':'none';
+  document.getElementById('view-pyeonmok').style.display = which==='pyeonmok'?'block':'none';
+  document.getElementById('view-archive').style.display = which==='archive'?'block':'none';
+  // sidebar highlight
+  document.querySelectorAll('.sb-item').forEach(e=>e.classList.remove('sel'));
+  if(which==='catalog') document.getElementById('mi-catalog').classList.add('sel');
+  else if(which==='pyeonmok') document.getElementById('mi-pyeonmok').classList.add('sel');
+  else if(which==='archive') document.getElementById('mi-archive').classList.add('sel');
+  else document.querySelectorAll('.sb-item')[0].classList.add('sel');
+  if(which==='catalog') openKeris();
+  if(which==='pyeonmok') renderQueue();
+  if(which==='archive') renderArchive();
+}
+
+/* ------- KERIS popup ------- */
+function openKeris(){
+  switchToCatalogSilently();
+  show('ov-keris');
+}
+function switchToCatalogSilently(){
+  document.getElementById('tab-catalog').classList.add('active');
+  document.getElementById('tab-biblio').classList.remove('active');
+  document.getElementById('view-catalog').style.display='block';
+  document.getElementById('view-biblio').style.display='none';
+}
+function closeKeris(){hide('ov-keris');}
+function clearKeris(){document.getElementById('k-q1').value='';document.getElementById('k-q2').value='';}
+
+function normalize(s){return (s||'').replace(/\s+/g,'').toLowerCase();}
+
+let currentResults = [];   // records currently listed in the KERIS popup
+let selectedIdx = 0;       // which popup row is selected
+
+function findBook(q){
+  q = normalize(q);
+  if(!q) return null;
+  return BOOKS.find(bk => bk.matchKeys.some(k=>{
+    const nk = normalize(k);
+    return nk.includes(q) || q.includes(nk);
+  })) || null;
+}
+
+function runKerisSearch(){
+  const q = document.getElementById('k-q1').value;
+  const body = document.getElementById('k-body');
+  const book = findBook(q);
+
+  if(book){
+    currentResults = book.results;
+    currentResults._query = book.query;
+    selectedIdx = 0;
+    document.getElementById('k-count').textContent = String(currentResults.length);
+    body.innerHTML = currentResults.map((r,i)=>
+      `<tr class="${i===0?'sel':''}" onclick="selectKerisRow(${i})" ondblclick="importSelected()">
+        <td class="num">${i+1}</td><td class="num">${r.ctrl}</td>
+        <td>${r.title}</td><td>${r.author}</td><td>${r.pub}</td>
+        <td class="num">${r.year}</td><td>${r.isbn}</td>
+        <td class="num">${r.type}</td><td class="num">${r.inst}</td></tr>`
+    ).join('');
+  } else {
+    // no result → union catalog has nothing (e.g. 부처의 생각하지 않는 연습)
+    currentResults = [];
+    document.getElementById('k-count').textContent = "0";
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#999;padding:40px;">
+      &nbsp;</td></tr>`;
+    show('ov-noresult');
+  }
+}
+function selectKerisRow(i){
+  selectedIdx = i;
+  const rows = document.querySelectorAll('#k-body tr');
+  rows.forEach((t,j)=>t.classList.toggle('sel', j===i));
+}
+function importSelected(){
+  if(!currentResults.length){ show('ov-noresult'); return; }
+  const rec = currentResults[selectedIdx] || currentResults[0];
+  populateCatalog(rec, currentResults._query, currentResults.length);
+  closeKeris();
+}
+
+/* ------- populate 종합목록 with the found record ------- */
+function populateCatalog(r, query, count){
+  const rows = currentResults.length ? currentResults : [r];
+  count = count || rows.length;
+  query = query || r.title.split(" :")[0];
+  document.getElementById('cat-count').innerHTML = "&nbsp;"+count;
+  document.getElementById('cat-query').innerHTML =
+    "검색종류 : [키워드] &nbsp; 검색항목 : [서명] &nbsp; 검색어 : ["+query+"]";
+  document.getElementById('cat-body').innerHTML = rows.map((row,i)=>
+    `<tr class="${row.ctrl===r.ctrl?'sel':''}" onclick="loadCatalogRow(${i})">
+       <td class="num">${i+1}</td><td class="num">${row.ctrl}</td>
+       <td>${row.title}</td><td>${row.author}</td><td>${row.pub}</td>
+       <td class="num">${row.year}</td><td></td><td></td><td class="num">cm</td>
+       <td></td><td></td><td></td><td></td><td>종합목록 DB</td></tr>`
+  ).join('');
+  // holdings
+  document.getElementById('hold-body').innerHTML = r.holdings.map((h,i)=>
+    `<tr${i===r.holdings.length-1?' class="sel"':''}><td class="num">${i+1}</td>
+     <td>${h[0]}</td><td class="num">${h[1]}</td><td class="num">${h[2]}</td><td class="num">${h[3]}</td></tr>`
+  ).join('');
+  // MARC editor
+  document.getElementById('marc-ctrl').textContent = r.ctrl;
+  document.getElementById('m-d1').textContent = r.d1;
+  document.getElementById('m-d2').textContent = r.d2;
+  document.getElementById('m-d3').textContent = r.d3;
+  document.getElementById('marc-body').innerHTML = marcFieldsHTML(r.marc);
+}
+
+// clicking a different row in the 종합목록 grid loads its detail/MARC
+function loadCatalogRow(i){
+  const rows = currentResults.length ? currentResults : [];
+  if(!rows[i]) return;
+  populateCatalog(rows[i], currentResults._query, rows.length);
+}
+
+/* ------- 서지 search (실제 서강대 장서 DB, /api/biblio 호출) ------- */
+function toggleBiField(){
+  const field = document.getElementById('bi-field').value;
+  const q2 = document.getElementById('bi-q2');
+  const tilde = document.getElementById('bi-tilde');
+  const isRange = (field === '청구기호'); // 청구기호만 범위(~) 검색 — 나머지는 단일어 검색이 자연스럽다
+  q2.style.display = isRange ? '' : 'none';
+  tilde.style.display = isRange ? '' : 'none';
+  if(!isRange) q2.value = '';
+  const ph = {'제어번호':'제어번호','서명':'서명(제목)','저자':'저자명','키워드':'키워드','청구기호':'청구기호'}[field] || '검색어';
+  document.getElementById('bi-q1').placeholder = ph + ' 입력';
+}
+toggleBiField();
+
+async function searchBiblio(){
+  const field = document.getElementById('bi-field').value;
+  const q1 = document.getElementById('bi-q1').value.trim();
+  const q2 = document.getElementById('bi-q2').value.trim();
+  const body = document.getElementById('bi-body');
+  let rows = [];
+  try{
+    const url = `/api/biblio?field=${encodeURIComponent(field)}&q1=${encodeURIComponent(q1)}&q2=${encodeURIComponent(q2)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    rows = data.rows || [];
+  }catch(e){
+    rows = [];
+  }
+  // 편목 대기열(아직 편목 완료 전)에 있는 책은 서지검색 결과에서 제외 — 자기 자신이 나오면 안 됨.
+  rows = rows.filter(r=>!isQueuedReg(r.reg));
+  if(rows.length){
+    document.getElementById('bi-count').innerHTML = "&nbsp;"+rows.length;
+    const range = (field==='청구기호' && q2 && q2!==q1) ? ' ~ '+q2 : '';
+    document.getElementById('bi-query').innerHTML =
+      `검색종류 : [상세] &nbsp; 검색항목 : [${field}] &nbsp; 검색어 : [${q1}${range}]`;
+    body.innerHTML = rows.map((r,i)=>
+      `<tr class="${i===0?'sel':''}">
+         <td class="num">${i+1}</td><td class="num">${r.reg}</td>
+         <td>${r.title}</td><td>${r.author}</td><td>${r.publisher}</td>
+         <td class="num">${r.year}</td><td>${r.altcall}</td><td>${r.callno}</td>
+         <td>cm</td><td></td><td></td><td></td><td></td>
+         <td>${r.loc}</td><td>${r.room}</td><td></td>
+         <td>이용가능</td><td class="num">${r.ctrl}</td>
+         <td></td><td></td><td></td></tr>`
+    ).join('');
+  } else {
+    document.getElementById('bi-count').innerHTML = "&nbsp;0";
+    document.getElementById('bi-query').innerHTML="";
+    body.innerHTML = "";
+    show('ov-noresult');
+  }
+}
+function resetBiblio(){
+  document.getElementById('bi-q1').value='';
+  document.getElementById('bi-q2').value='';
+  document.getElementById('bi-body').innerHTML='';
+  document.getElementById('bi-count').innerHTML='&nbsp;0';
+  document.getElementById('bi-query').innerHTML='';
+}
+
+/* ------- 편목 (cataloging) ------- */
+let pmkIdx = -1; // index of the queue row currently open in the MARC editor
+
+// 서지 DB의 reg/ctrl은 "CATTOC" 접두어가 붙어 있어 CATALOG_QUEUE의 reg(순수 등록번호)와
+// 그대로는 비교가 안 됨 — 접미어 일치로 같은 책인지 판단한다.
+function isQueuedReg(reg){
+  return CATALOG_QUEUE.some(q => (reg||'').endsWith(q.reg));
+}
+
+function renderQueue(){
+  document.getElementById('pmk-count').innerHTML = "&nbsp;"+CATALOG_QUEUE.length;
+  document.getElementById('pmk-body').innerHTML = CATALOG_QUEUE.map((q,i)=>
+    `<tr onclick="selectQueueRow(${i})" ondblclick="openMarcEdit(${i})">
+       <td class="num">${i+1}</td><td class="num"><span style="color:${q.status==='편목완료'?'#1e8e3e':'#d33'};font-weight:600;">${q.status}</span></td>
+       <td class="num">${q.h852||''}</td>
+       <td>${q.title}</td><td>${q.author}</td>
+       <td class="num">${q.reg}</td></tr>`
+  ).join('');
+}
+function selectQueueRow(i){
+  document.querySelectorAll('#pmk-body tr').forEach((t,j)=>t.classList.toggle('sel', j===i));
+}
+
+// 상세정보창 · MARC창을 동시에 띄우고 각각 드래그로 옮길 수 있게 한다.
+// 처음 열 때만 기본 위치를 잡고(둘이 겹치지 않게 대각선으로 배치), 이미 옮긴 적이 있으면
+// 그 자리를 그대로 유지한다 — 매번 원위치로 튕기면 옮긴 보람이 없다.
+let floatZ = 60;
+function raiseWin(el){ floatZ++; el.style.zIndex = floatZ; }
+function ensureWinPos(box, defTop, defLeft){
+  if(!box.dataset.positioned){
+    box.style.top = defTop; box.style.left = defLeft;
+    box.dataset.positioned = '1';
+  }
+  raiseWin(box);
+}
+function makeDraggable(box, handle){
+  let sx=0, sy=0, ox=0, oy=0, dragging=false;
+  handle.addEventListener('mousedown', e=>{
+    if(e.target.closest('.x')) return;
+    dragging = true;
+    sx = e.clientX; sy = e.clientY;
+    ox = box.offsetLeft; oy = box.offsetTop;
+    raiseWin(box);
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    box.style.left = (ox + e.clientX - sx) + 'px';
+    box.style.top = (oy + e.clientY - sy) + 'px';
+  });
+  window.addEventListener('mouseup', ()=>{ dragging = false; });
+  box.addEventListener('mousedown', ()=>raiseWin(box));
+}
+makeDraggable(document.querySelector('#ov-marcedit .keris'), document.querySelector('#ov-marcedit .k-head'));
+makeDraggable(document.querySelector('#ov-aidetail .keris'), document.querySelector('#ov-aidetail .k-head'));
+
+function openMarcEdit(i){
+  pmkIdx = i;
+  const q = CATALOG_QUEUE[i];
+  document.getElementById('pmk-me-reg').textContent = q.reg;
+  document.getElementById('pmk-me-title').textContent = q.title;
+  document.getElementById('pmk-me-body').innerHTML = marcFieldsHTML(buildDisplayMarc(q));
+  document.getElementById('new852-input').value = q.h852 || '';
+  document.getElementById('new852-room').textContent = q.room;
+  document.getElementById('loc-room').value = q.room;
+  document.getElementById('ai852-box').innerHTML = '';
+  ensureWinPos(document.querySelector('#ov-marcedit .keris'), '30px', '20px');
+  show('ov-marcedit');
+}
+function closeMarcEdit(){ hide('ov-marcedit'); }
+
+// 서지검색: 이 책의 082(업체 DDC)를 기본값으로 청구기호 인접번호를 실제 DB에서 조회한다.
+// 영상1에서 사서가 "729~729"로 검색해 139건을 훑어보고 세부번호(▼i)를 결정하던 단계.
+// 여기서는 참고용일 뿐 — 행을 클릭해도 852를 대신 채우지 않는다(실제로도 사서가 직접 판단해 입력한다).
+function openCallSearch(){
+  document.getElementById('cs-field').value = '키워드';
+  document.getElementById('cs-q1').value = '';
+  document.getElementById('cs-count').textContent = '0';
+  document.getElementById('cs-body').innerHTML =
+    '<tr><td colspan="5" style="text-align:center;color:#999;padding:40px;">청구기호 또는 키워드를 입력하고 검색하세요.</td></tr>';
+  show('ov-callsearch');
+}
+function onCallSearchFieldChange(){
+  document.getElementById('cs-q1').focus();
+}
+async function runCallSearch(){
+  const field = document.getElementById('cs-field').value;
+  const q1 = document.getElementById('cs-q1').value.trim();
+  const body = document.getElementById('cs-body');
+  if(!q1){ return; }
+  let rows = [];
+  try{
+    const url = `/api/biblio?field=${encodeURIComponent(field)}&q1=${encodeURIComponent(q1)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    rows = data.rows || [];
+  }catch(e){ rows = []; }
+  // 편목 대기열(아직 편목 완료 전)에 있는 책은 서지검색 결과에서 제외 — 자기 자신이 나오면 안 됨.
+  rows = rows.filter(r=>!isQueuedReg(r.reg));
+  document.getElementById('cs-count').textContent = String(rows.length);
+  body.innerHTML = rows.length ? rows.map((r,i)=>
+    `<tr><td class="num">${i+1}</td><td class="num">${r.callno}</td>
+       <td>${r.title}</td><td>${r.author}</td><td class="num">${r.reg}</td></tr>`
+  ).join('') : '<tr><td colspan="5" style="text-align:center;color:#999;padding:40px;">검색 결과가 없습니다.</td></tr>';
+}
+
+// 모델 실행: lib_copilot 연동 전 데모(mock)다 — 실제 LLM을 부르지 않고, 골든셋 케이스의
+// 실제 사서 판단 결과를 후보 카드 모양으로 보여준다(서버 /api/classify 참고).
+// 자동으로 852를 채우지 않는다 — 후보를 보여주고, 사서가 후보를 클릭해야 입력창에 들어간다.
+let lastAIData = null; // 상세정보(ov-aidetail)가 마지막 /api/classify 응답을 그대로 재사용
+
+async function runAIModel(){
+  const q = CATALOG_QUEUE[pmkIdx];
+  const box = document.getElementById('ai852-box');
+  lastAIData = null;
+  if(!q.case){
+    box.innerHTML = '<div class="ai852-err">이 항목은 코파일럿 데모 케이스가 아닙니다.</div>';
+    return;
+  }
+  box.innerHTML = '<div class="ai852-loading">🤖 모델 실행 중…</div>';
+  try{
+    const res = await fetch(`/api/classify?case=${encodeURIComponent(q.case)}`);
+    const data = await res.json();
+    if(data.error){ box.innerHTML = `<div class="ai852-err">오류: ${data.error}</div>`; return; }
+    lastAIData = data;
+    renderAIResult(data);
+  }catch(e){
+    box.innerHTML = `<div class="ai852-err">요청 실패: ${e}</div>`;
+  }
+}
+function citedLine(c){
+  return (c.cited_books && c.cited_books.length)
+    ? `<div class="cited">📚 인용 도서: ${c.cited_books.join(', ')}</div>` : '';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+// fit_reasoning에 systemprompt_shelf_fit.txt 지시로 붙는 "주제·관점 0.xx, 자료 성격·용도 0.yy(로 산술평균은
+// 0.zz이다)" 감사용 점수 breakdown — 데모 화면에서만 숨긴다(백엔드/프롬프트는 그대로, 표시만 제거).
+// LLM이 매번 문구를 살짝 다르게 붙인다(맨 앞/맨 뒤 위치, "산술평균은 ~이다" 유무, 뒤에 마침표 대신
+// "이며,"/"이고,"로 다음 문장에 이어붙이는 경우 등) — 그래서 "끝까지 다 지움"이 아니라 숫자 breakdown
+// 문구 + (있다면) 산술평균 절 + 그 뒤에 붙는 접속어(., 이며,, 이고,)까지만 정확히 제거한다.
+function stripFitBreakdown(s){
+  let out = String(s||'').replace(
+    /\s*주제\s*[·ㆍ]\s*관점\s*\d+(?:\.\d+)?\s*,\s*자료\s*성격\s*[·ㆍ]\s*용도\s*\d+(?:\.\d+)?\s*(?:\(?(?:으)?로\s*,?\s*산술평균은\s*\d+(?:\.\d+)?\s*이다\)?)?\s*(?:\.|이며,?|이고,?)?\s*/,
+    ''
+  );
+  // 안전망: 산술평균 절이 위 breakdown 패턴과 떨어져 문장 중간/끝에 단독으로 붙는 경우도 제거한다.
+  out = out.replace(/\s*(?:\(?(?:으)?로\s*,?\s*)?산술평균은\s*\d+(?:\.\d+)?\s*이다\)?\s*(?:\.|이며,?|이고,?)?\s*/g, ' ');
+  return out.replace(/\s+/g,' ').trim();
+}
+// 후보 카드마다 남기는 사서 메모 — 데이터로 잡히지 않는 암묵지(현장 판단 이유 등)를 적어두는 용도.
+// 책(pmkIdx)·후보 청구기호(call) 단위로 CATALOG_QUEUE 항목에 붙여 저장한다.
+function candMemoLine(call){
+  const q = CATALOG_QUEUE[pmkIdx];
+  const memo = (q && q._candMemo && q._candMemo[call]) || '';
+  return `<div class="ai852-memo-wrap" onclick="event.stopPropagation()">
+    <span class="ai852-memo-btn" onclick="toggleCandMemo(this)">📝 메모${memo ? ' ✓' : ''}</span>
+    <textarea class="ai852-memo-box${memo ? ' show has-memo' : ''}" placeholder="암묵지 메모 (Enter로 저장, Shift+Enter는 줄바꿈)"
+      oninput="saveCandMemo(this,'${call}')"
+      onblur="hideCandMemoIfEmpty(this)"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveCandMemo(this,'${call}');renderAIResult(lastAIData);}">${escapeHtml(memo)}</textarea>
+  </div>`;
+}
+function toggleCandMemo(btn){
+  const box = btn.nextElementSibling;
+  box.classList.add('show');
+  box.focus();
+}
+function hideCandMemoIfEmpty(ta){
+  if(!ta.value.trim()) ta.classList.remove('show');
+}
+function saveCandMemo(ta, call){
+  const q = CATALOG_QUEUE[pmkIdx];
+  if(!q) return;
+  q._candMemo = q._candMemo || {};
+  q._candMemo[call] = ta.value;
+  ta.classList.toggle('has-memo', !!ta.value.trim());
+}
+function renderAIResult(data){
+  const box = document.getElementById('ai852-box');
+  const detBtn = '<span class="ai852-detbtn" onclick="openAIDetail()">🔍 상세정보</span>';
+  if(data.inherited){
+    const c = data.candidates[0];
+    const call = c.call || c.h;
+    box.innerHTML = `<div class="ai852-head">${detBtn}🤖 AI 제안 — 기존 판본 승계 (0차, LLM 미사용)</div>
+      <div class="ai852-cand sel top1 hastag" onclick="pickAIH('${call}')">
+        <span class="top1tag">★ AI 1순위 · 가장 적합</span>
+        <b>${call}</b>
+        <div class="reason">${stripFitBreakdown(c.fit_reasoning)}</div>${citedLine(c)}
+      </div>`;
+    return;
+  }
+  // 후보가 갈리지 않고 AI가 확정지을 때(escalate=false)만 1순위 후보에 빨간 테두리를 준다.
+  // 후보가 갈릴 때는 테두리 없이 표시만 하고, 사서 판단을 유도한다.
+  const esc = data.escalate
+    ? `<div class="ai852-escalate">⚠ 후보가 갈려 사서 판단이 필요합니다</div>` : '';
+  const card = (c,i) => {
+    const call = c.call || c.h;
+    const isTop = i===0;
+    const confident = isTop && !data.escalate;
+    const cls = 'ai852-cand' + (isTop ? ' sel' : '') + (confident ? ' top1 hastag' : '');
+    const tag = confident ? '<span class="top1tag">★ AI 1순위 · 가장 적합</span>' : '';
+    return `<div class="${cls}" onclick="pickAIH('${call}')">
+       ${tag}<b>${call}</b> <b class="shelflabel">${c.shelf_label}</b><span class="fit"> · 신뢰도 ${Math.round(c.shelf_fit*100)}점</span>
+       <div class="reason">${stripFitBreakdown(c.fit_reasoning)}</div>${citedLine(c)}${candMemoLine(call)}
+     </div>`;
+  };
+  const shown = data.candidates.slice(0,3);
+  const rest = data.candidates.slice(3);
+  let html = `<div class="ai852-head">${detBtn}🤖 AI 제안 후보 (적합도 순, 클릭하면 852에 입력)</div>${esc}` +
+    shown.map(card).join('');
+  if(rest.length){
+    html += `<div class="ai852-more-toggle" onclick="toggleMoreAI(this)">▼ 낮은 적합도 후보 ${rest.length}개 더보기</div>
+      <div class="ai852-more" style="display:none;">${rest.map((c,i)=>card(c,i+3)).join('')}</div>`;
+  }
+  box.innerHTML = html;
+}
+function toggleMoreAI(el){
+  const more = el.nextElementSibling;
+  const willShow = more.style.display === 'none';
+  more.style.display = willShow ? '' : 'none';
+  const n = more.children.length;
+  el.textContent = willShow ? '▲ 접기' : `▼ 낮은 적합도 후보 ${n}개 더보기`;
+}
+function pickAIH(h){
+  document.getElementById('new852-input').value = h;
+  document.getElementById('new852-input').focus();
+  const q = CATALOG_QUEUE[pmkIdx];
+  if(!q) return;
+  q._pendH = h;
+  // 저자기호(▼i)·권차(▼m)는 여기서 바로 채우지 않는다 — 저장(saveRecord) 후 5초 지연으로 채워짐(데모용).
+  document.getElementById('pmk-me-body').innerHTML = marcFieldsHTML(buildDisplayMarc(q));
+  logArchiveIfOverride(q, h);
+}
+// AI 1순위(최고 신뢰도)가 아닌 후보를 사서가 고르면 아카이브에 남긴다.
+// 다시 1순위를 고르면(마음을 바꾸면) 그 기록은 지운다 — 책 한 권당 최신 상태 1건만 유지.
+function logArchiveIfOverride(q, pickedCall){
+  if(!lastAIData || lastAIData.inherited || !Array.isArray(lastAIData.candidates) || !lastAIData.candidates.length) return;
+  const top = lastAIData.candidates[0];
+  const topCall = top.call || top.h;
+  const idx = ARCHIVE_LOG.findIndex(e=>e.reg===q.reg);
+  if(pickedCall === topCall){
+    if(idx>=0) ARCHIVE_LOG.splice(idx,1);
+    return;
+  }
+  const entry = {reg:q.reg, aiCall:topCall, librarianCall:pickedCall, time:new Date()};
+  if(idx>=0) ARCHIVE_LOG[idx]=entry; else ARCHIVE_LOG.push(entry);
+}
+function renderArchive(){
+  const sorted = ARCHIVE_LOG.slice().sort((a,b)=>b.time-a.time); // 최신순
+  document.getElementById('arc-count').innerHTML = "&nbsp;"+ARCHIVE_LOG.length;
+  document.getElementById('arc-body').innerHTML = sorted.length ? sorted.map((e,i)=>{
+    const q = CATALOG_QUEUE.find(b=>b.reg===e.reg);
+    // 하드코딩 예시 항목은 title·memo를 직접 갖고 있고, 실제 로그(pickAIH발) 항목은 reg로 책을 찾아온다.
+    const title = e.title || (q ? q.title : '');
+    const memo = e.memo != null ? e.memo : ((q && q._candMemo && q._candMemo[e.librarianCall]) || '');
+    const t = e.time.toLocaleString('ko-KR',{hour12:false});
+    return `<tr><td class="num">${i+1}</td><td>${title}</td>
+       <td class="num">${e.aiCall}</td><td class="num">${e.librarianCall}</td>
+       <td>${escapeHtml(memo)}</td><td class="num">${t}</td></tr>`;
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:40px;">아직 기록된 항목이 없습니다.</td></tr>';
+}
+
+// ---------- Monitor(청구기호 오류 아웃라이어 점검) ----------
+function updateMonitorBadge(){
+  const n = MONITOR_OUTLIERS.filter(o=>o.status==='flag').length;
+  const badge = document.getElementById('mon-badge');
+  badge.textContent = n;
+  badge.classList.toggle('zero', n===0);
+}
+function openMonitor(){
+  renderMonitor();
+  show('ov-monitor');
+}
+function monRowHTML(o){
+  const statusLabel = o.status==='flag' ? '정정필요' : (o.status==='fixed' ? '정정완료' : '유지');
+  const asIs = o.status==='fixed' ? o.toBe : o.asIs; // 정정완료면 현재 청구기호도 to-be로 갱신된 것으로 표시
+  const pick = o.status==='flag'
+    ? `<div class="mon-pick">
+         <button type="button" class="mon-btn ok" onclick="monitorAction(${o.id},'ok')">유지</button>
+         <button type="button" class="mon-btn fix" onclick="monitorAction(${o.id},'fix')">수정</button>
+       </div>`
+    : '';
+  return `<tr class="mon-row ${o.status==='flag'?'':o.status}">
+     <td class="num">${pick}</td>
+     <td class="num"><span class="mon-status ${o.status}">${statusLabel}</span></td>
+     <td class="num"><span class="mon-call tobe">${o.toBe}</span></td>
+     <td class="num"><span class="mon-call">${asIs}</span></td>
+     <td>${escapeHtml(o.title)}</td>
+     <td>${escapeHtml(o.author)}</td>
+   </tr>`;
+}
+// 정정필요(flag) 항목이 위로, 유지(ok) 항목은 아래로. 수정완료(fixed) 항목은 본 목록에서 빼서
+// 아래 '수정로그' 접이식 영역에 따로 모아둔다.
+function renderMonitor(){
+  const main = MONITOR_OUTLIERS.filter(o=>o.status==='flag').sort((a,b)=>a.id-b.id);
+  const done = MONITOR_OUTLIERS.filter(o=>o.status!=='flag').sort((a,b)=>a.id-b.id);
+  document.getElementById('mon-body').innerHTML = main.map(monRowHTML).join('');
+  document.getElementById('mon-fixlog-count').textContent = done.length;
+  document.getElementById('mon-fixlog-body').innerHTML = done.map(monRowHTML).join('');
+}
+function monitorAction(id, action){
+  const o = MONITOR_OUTLIERS.find(x=>x.id===id);
+  if(!o) return;
+  if(action==='ok'){
+    o.status = 'ok';
+  }else if(action==='fix'){
+    o.asIs = o.toBe; // 사서가 청구기호를 AI 제안대로 정정했다고 가정(데모)
+    o.status = 'fixed';
+  }
+  renderMonitor();
+  updateMonitorBadge();
+}
+
+// 상세정보: 마지막 /api/classify 응답(lastAIData)을 사서용 '근거' 화면으로 풀어서 보여준다.
+// 추가 API 호출 없음 — runAIModel()이 이미 받아온 데이터를 재사용한다.
+function openAIDetail(){
+  if(!lastAIData){ return; }
+  const d = lastAIData;
+  const body = document.getElementById('aidetail-body');
+  let html = '';
+
+  if(d.inherited){
+    html += `<div class="adx-sec"><h4>0차 승계</h4>
+      <div class="adx-msg">기존 판본/원서가 본교에 있어 그 청구기호를 그대로 승계했습니다 — LLM 호출 없음.</div>
+    </div>`;
+  } else {
+    if(d.ddc_082){
+      const p = d.candidates.find(c=>c.h===d.ddc_082);
+      html += `<div class="adx-sec"><h4>082(업체 제공 분류기호)</h4>
+        <div class="adx-msg">082 = <b>${d.ddc_082}</b>${p ? ` · 신뢰도 ${Math.round(p.shelf_fit*100)}점` : ' · 서가 표본 없음(평가 제외)'}</div>
+      </div>`;
+    }
+    if(d.went_keyword && d.keyword_query && d.keyword_query.length){
+      html += `<div class="adx-sec"><h4>키워드 검색어</h4>
+        <div class="adx-kw">${d.keyword_query.map(k=>`<span>${k}</span>`).join('')}</div>
+        <div class="adx-msg">위 검색어로 본교 장서(서명·650 주제표목)를 찾아 새 후보를 추가했습니다.</div>
+      </div>`;
+    }
+  }
+
+  html += `<div class="adx-sec"><h4>후보별 독립 신뢰도 (${d.candidates.length}개, 신뢰도 순)</h4>` +
+    d.candidates.map((c,i)=>{
+      const src = (c.sources||[]).map(s=>`<span class="adx-src">${s}</span>`).join('');
+      const gold = c.gold_match ? `<span class="adx-goldtag">★ 실제 사서 최종 판단과 일치</span>` : '';
+      // cited_books(전체 인용 목록)를 기준으로 렌더링하고 cited_books_detail(설명 있는 것만)에서 설명을 찾아 붙인다.
+      // 알라딘 API가 국내 유통 도서 중심이라 외서 등은 책소개가 없을 수 있는데, 그래도 인용 사실 자체는 보여준다.
+      const descByTitle = {};
+      (c.cited_books_detail||[]).forEach(cb=>{ descByTitle[cb.title] = cb.desc; });
+      const cited = (c.cited_books||[]).map(t=>{
+        const desc = descByTitle[t];
+        return desc
+          ? `<div class="ct">📖 ${t}</div><div class="cd">${desc}</div>`
+          : `<div class="ct">📖 ${t} <span class="nodesc">(책소개 없음 · 외서 등)</span></div>`;
+      }).join('');
+      const sampleN = (c.shelf_sample||[]).length;
+      // 2026-09 요청으로 당장은 UI에서 숨김 — 로직/스타일은 유지하고 버튼만 비활성화(false).
+      const SHOW_SHELF_BUBBLE_BTN = false;
+      const plusBtn = (SHOW_SHELF_BUBBLE_BTN && sampleN) ? `<button type="button" class="adx-plus" title="참고 도서 ${sampleN}권 보기"
+        onclick="toggleShelfBubble(${i})">+</button>` : '';
+      return `<div class="adx-cand${c.gold_match?' gold':''}">
+        ${plusBtn}
+        <span class="adx-rank">${i+1}위 · ${c.call || c.h}</span>${src}${gold}
+        <span class="fit"> · 신뢰도 ${Math.round(c.shelf_fit*100)}점</span>
+        <div class="adx-label">${c.shelf_label}</div>
+        <div class="adx-reason">${stripFitBreakdown(c.fit_reasoning)}</div>
+        ${cited ? `<div class="adx-cited">${cited}</div>` : ''}
+        <div class="adx-bubble-wrap" id="bubble-wrap-${i}" style="display:none;"></div>
+      </div>`;
+    }).join('') + `</div>`;
+
+  if(d.stage_messages && d.stage_messages.length){
+    html += `<div class="adx-sec"><h4>판정 경과</h4>` +
+      d.stage_messages.map(m=>`<div class="adx-msg">· ${m}</div>`).join('') + `</div>`;
+  }
+
+  if(d.outliers && d.outliers.length){
+    html += `<div class="adx-sec"><h4>⚠ 외딴 번호(아웃라이어) 후보</h4>
+      <div class="adx-msg">키워드로 1~2권만 걸렸고, 1위 후보(${d.outliers[0].mainstream_h})와 대분류가
+      다르며, 본교 소장이 3권 이하인 후보입니다 — 오분류로 고립됐을 가능성이 있어 일괄 재분류
+      후보로 참고할 만합니다.</div>` +
+      d.outliers.map(o=>`<div class="adx-outlier">
+        <b>${o.call || o.h}</b> · 키워드 ${o.keyword_hits}건 매칭 · 본교 소장 ${o.shelf_count}권
+      </div>`).join('') + `</div>`;
+  }
+
+  body.innerHTML = html;
+  ensureWinPos(document.querySelector('#ov-aidetail .keris'), '70px', '360px');
+  show('ov-aidetail');
+}
+
+// 후보 카드 '+' 버튼 — 그 852h의 서가 표본(최대 40권, shelf_sample)을 원형 클러스터로 시각화.
+// 추가 API 호출 없음: lastAIData.candidates[i].shelf_sample(runAIModel이 이미 받아온 데이터) 재사용.
+function toggleShelfBubble(i){
+  const wrap = document.getElementById('bubble-wrap-'+i);
+  if(!wrap) return;
+  if(wrap.style.display !== 'none'){ wrap.style.display = 'none'; return; }
+  if(!wrap.dataset.built){
+    const sample = (lastAIData.candidates[i] && lastAIData.candidates[i].shelf_sample) || [];
+    wrap.innerHTML = renderBubbleCluster(sample);
+    wrap.dataset.built = '1';
+  }
+  wrap.style.display = 'block';
+}
+
+// 골든각(137.508°) 나선 배치 — 원들이 서로 겹치며 유기적으로 얽힌 클러스터를 만든다
+// (사용자 첨부 영상의 'Connected Papers'류 그래프 스타일 참고).
+function renderBubbleCluster(sample){
+  if(!sample.length) return '<div class="bubble-empty">참고 도서 표본이 없습니다.</div>';
+  // 위치는 %(가로)로 계산해 컨테이너 실제 폭에 맞춰 스케일되게 한다 — 원 크기(size)만 px 고정.
+  const W = 680, H = 230, cx = W/2, cy = H/2;
+  const golden = 137.508 * Math.PI / 180;
+  let circles = '';
+  sample.forEach((b,i)=>{
+    const r = 8 * Math.sqrt(i + 1);
+    const theta = i * golden;
+    const x = cx + r * Math.cos(theta);
+    const y = cy + r * Math.sin(theta) * 0.82;
+    const size = 20 + (i % 5) * 4;
+    const leftPct = ((x - size/2) / W * 100).toFixed(2);
+    circles += `<div class="bubble-circle" style="left:${leftPct}%;top:${(y - size/2).toFixed(1)}px;width:${size}px;height:${size}px;"
+      data-title="${escapeHtml(b.title||'')}" data-author="${escapeHtml(b.author||'')}" data-call="${escapeHtml(b.call||'')}"
+      onmouseenter="showBubbleTip(this)" onmouseleave="hideBubbleTip(this)">${escapeHtml((b.title||'?').slice(0,1))}</div>`;
+  });
+  return `<div class="bubble-stage" style="width:100%;height:${H}px;">${circles}<div class="bubble-tip" style="display:none;"></div></div>
+    <div class="adx-msg" style="margin-top:4px;">본교 서가 표본 ${sample.length}권 · 원 위에 마우스를 올리면 서지정보가 보입니다.</div>`;
+}
+
+function showBubbleTip(el){
+  const stage = el.closest('.bubble-stage');
+  const tip = stage && stage.querySelector('.bubble-tip');
+  if(!tip) return;
+  const title = el.dataset.title, author = el.dataset.author, call = el.dataset.call;
+  tip.innerHTML = `<b>${title}</b>${author ? `<br>${author}` : ''}${call ? `<br>${call}` : ''}`;
+  const sRect = stage.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+  const elLeft = eRect.left - sRect.left, elTop = eRect.top - sRect.top;
+  let left = elLeft + el.offsetWidth + 6;
+  if(left + 220 > stage.clientWidth) left = elLeft - 226;
+  if(left < 0) left = 2;
+  tip.style.left = left + 'px';
+  tip.style.top = elTop + 'px';
+  tip.style.display = 'block';
+}
+function hideBubbleTip(el){
+  const stage = el.closest('.bubble-stage');
+  const tip = stage && stage.querySelector('.bubble-tip');
+  if(tip) tip.style.display = 'none';
+}
+
+function openLocationDialog(){ show('ov-location'); }
+function applyLocation(){
+  const room = document.getElementById('loc-room').value;
+  document.getElementById('new852-room').textContent = room;
+  const q = CATALOG_QUEUE[pmkIdx];
+  if(q){
+    q.room = room;
+    q._loc852 = {a:"중앙", b: ROOM_CODE[room] || room};
+    document.getElementById('pmk-me-body').innerHTML = marcFieldsHTML(buildDisplayMarc(q));
+  }
+  hide('ov-location');
+  document.getElementById('new852-input').focus();
+}
+
+// 소장처설정에서 고른 자료실 표시명 -> 실제 852 ▼b 코드
+const ROOM_CODE = {"대형자료서가":"대형자료","단행본서가":"단행본","보관서고":"보관서고"};
+
+function saveRecord(){
+  const val = document.getElementById('new852-input').value.trim();
+  if(!val){ alert('청구기호(852 ▼h)를 입력하세요.'); return; }
+  const q = CATALOG_QUEUE[pmkIdx];
+  clearTimeout(q._imTimer);
+
+  // 852 필드 생성: ▼a 소장처, ▼b 자료실, ▼h 분류기호, ▼i 저자기호, ▼m 권차(실데이터 있으면)
+  // ▼i는 입력창에 사서가 직접 적어둔 값(수동 입력)만 저장 즉시 반영한다 — Copilot 후보로 채운
+  // 경우(수동 입력 없음)엔 여기선 ▼h만 저장하고, ▼i·▼m은 저장 5초 후 하드코딩 값으로 채운다(데모용).
+  const [h, ...rest] = val.split(/\s+/);
+  const manualI = rest.join(' ');
+  q.h852 = manualI ? `${h} ${manualI}` : h;
+  q.room = document.getElementById('new852-room').textContent;
+  q.status = "편목완료";
+
+  const subs = [["a","중앙"], ["b", ROOM_CODE[q.room] || q.room], ["h", h]];
+  if(manualI) subs.push(["i", manualI]);
+  const f852 = ["852","21",subs];
+  const idx = q.marc.findIndex(f=>f[0]==="852");
+  if(idx >= 0) q.marc[idx] = f852; else q.marc.push(f852);
+
+  document.getElementById('pmk-me-body').innerHTML = marcFieldsHTML(q.marc);
+  document.getElementById('ai852-box').innerHTML = ''; // 저장하면 Copilot 후보 패널은 닫고, Copilot 버튼을 다시 눌러야 나옴
+  renderQueue();
+  show('ov-savedone');
+
+  if(!manualI){
+    q._imTimer = setTimeout(()=>{
+      if(CATALOG_QUEUE[pmkIdx] !== q) return; // 그 사이 다른 책으로 넘어갔으면 반영하지 않음
+      const i = q.i852 || '', m = q.m852 || '';
+      if(!i && !m) return;
+      q.h852 = i ? `${h} ${i}` : h;
+      const subs2 = [["a","중앙"], ["b", ROOM_CODE[q.room] || q.room], ["h", h]];
+      if(i) subs2.push(["i", i]);
+      if(m) subs2.push(["m", m]);
+      const f852b = ["852","21",subs2];
+      const idx2 = q.marc.findIndex(f=>f[0]==="852");
+      if(idx2 >= 0) q.marc[idx2] = f852b; else q.marc.push(f852b);
+      document.getElementById('pmk-me-body').innerHTML = marcFieldsHTML(q.marc);
+      renderQueue();
+    }, 5000);
+  }
+}
+function confirmSaveDone(){
+  hide('ov-savedone');
+}
+
+/* ------- init ------- */
+window.addEventListener('DOMContentLoaded',()=>{
+  openKeris();               // clicking 종합목록(default) shows KERIS popup
+  searchBiblio();            // pre-fill 서지 table so 서지 tab shows the 294.344 result
+  renderQueue();             // pre-fill 편목 대기열
+  updateMonitorBadge();      // 사이드바 Monitor 배지(정정필요 건수)
+});
+</script>
+</body>
+</html>
