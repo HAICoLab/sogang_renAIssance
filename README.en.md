@@ -8,17 +8,16 @@
 **Sogang renAIssance** is the official repository for the project  
 **“A Librarian–AI Collaborative Agent for Library Classification Number Decision Support.”**
 
-The project was developed by undergraduate students in the 
-**English Language and Literature program, Department of English, Sogang University**.
+The project was developed by undergraduate students in the  
+**English Literature and Linguistics, Division of English, Sogang University**.
 
-The goal of the project is to develop a **human–AI collaborative decision-support system**
+The goal of the project is to develop a **human–AI collaborative decision-support system**. 
 that assists librarians in determining appropriate library classification numbers.
 
-Rather than fully automating the classification process,
-the system retrieves similar cataloging cases, generates classification candidates,
-and provides supporting evidence and explanations for each candidate.
-The final classification decision remains with the librarian,
-following a **Human-in-the-Loop** design philosophy.
+Rather than fully automating the classification process,  
+the system retrieves similar cataloging cases, generates classification candidates,  
+and provides supporting evidence and explanations for each candidate.  
+The final classification decision remains with the librarian, following a **Human-in-the-Loop** design philosophy.
 
 ## Award
 
