@@ -21,10 +21,10 @@ The final classification decision remains with the librarian, following a **Huma
 
 ## Award
 
-🏆 **Excellence Award**  
-Sogang University Student Competition
+>> 🏆 **Excellence Award**  
+>> Sogang University Student Competition
 
----
+
 
 ## Team
 
